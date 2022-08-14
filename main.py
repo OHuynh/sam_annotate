@@ -1,10 +1,15 @@
 import argparse
 import cv2
 
+import utils.globals as globals
+from callbacks import mouse
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--video", type=str, help="The path to the video to annotate."
 )
+
+globals.init_global_vars()
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -20,6 +25,7 @@ if __name__ == "__main__":
     ret, frame = cap.read()
     cv2.imshow(window_name, frame)
     cv2.createTrackbar(trackbar_name, window_name, frame_idx, int(nb_frames), lambda _: None)
+    cv2.setMouseCallback(window_name, mouse.draw_bb)
 
     while cap.isOpened() and ret:
         frame_idx = cv2.getTrackbarPos(trackbar_name, window_name)
@@ -28,7 +34,14 @@ if __name__ == "__main__":
             ret, frame = cap.read()
         prev_frame_idx = frame_idx
         if ret:
-            cv2.imshow(window_name, frame)
+            frame_to_show = frame.copy()
+            if globals.drawing_rect:
+                cv2.rectangle(frame_to_show, globals.top_left, globals.bottom_right, (0, 255, 0), 2, 8)
+            if globals.save_annot:
+                cv2.rectangle(frame_to_show, globals.top_left, globals.bottom_right, (0, 255, 0), 2, 8)
+                globals.save_annot = False
+                frame = frame_to_show
+            cv2.imshow(window_name, frame_to_show)
             c = cv2.waitKey(25)
             if c == ord('q'):
                 break
@@ -36,6 +49,8 @@ if __name__ == "__main__":
                 cv2.setTrackbarPos(trackbar_name, window_name, frame_idx + 1)
             elif c == ord('-') and frame_idx > 1:
                 cv2.setTrackbarPos(trackbar_name, window_name, frame_idx - 1)
+
+
 
     cap.release()
     cv2.destroyAllWindows()
