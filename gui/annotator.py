@@ -18,7 +18,7 @@ class Annotator:
         self.init_window()
 
         # variables for drawing bb
-        self._save_annot = False
+        self._rect_drawn = False
         self._drawing_rect = False
         self._top_left = (0, 0)
         self._bottom_right = (0, 0)
@@ -26,6 +26,8 @@ class Annotator:
         # variables to store annotations
         self._label = None
         self._obj_to_id = None
+        self._should_save = None
+        self._start_end_bb = []
 
     def init_window(self):
         # init the window
@@ -38,6 +40,7 @@ class Annotator:
     def run(self):
         cap = self._cap
         prev_frame_idx = 1
+        callback = partial(Annotator.label_emitter, self)
         while cap.isOpened() and self._ret:
             frame_idx = cv2.getTrackbarPos(self._trackbar_name, self._window_name)
             if frame_idx != prev_frame_idx:
@@ -48,12 +51,20 @@ class Annotator:
                 frame_to_show = self._frame.copy()
                 if self._drawing_rect:
                     cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
-                if self._save_annot:
-                    cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
-                    self._save_annot = False
-                    self._frame = frame_to_show
-                    callback = partial(Annotator.label_emitter, self)
-                    Labeler(callback)
+                if self._rect_drawn:
+                    self._rect_drawn = False
+                    self._start_end_bb.append((frame_idx, self._top_left, self._bottom_right))
+                    show_rect = False
+                    if len(self._start_end_bb) >= 2:
+                        Labeler(callback)
+                        if self._should_save:
+                            show_rect = True
+                        self._start_end_bb = []
+                    else:
+                        show_rect = True
+                    if show_rect:
+                        cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
+                        self._frame = frame_to_show
 
 
                 cv2.imshow(self._window_name, frame_to_show)
@@ -65,9 +76,10 @@ class Annotator:
                 elif c == ord('-') and frame_idx > 1:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx - 1)
 
-    def label_emitter(self, label, obj_id):
+    def label_emitter(self, should_save, label, obj_id):
         self._label = label
         self._obj_to_id = obj_id
+        self._should_save = should_save
 
     @staticmethod
     def _draw_bb(action, x, y, flags, *userdata):
@@ -81,5 +93,5 @@ class Annotator:
         elif action == cv2.EVENT_LBUTTONUP:
             annotator._bottom_right = (x, y)
             annotator._drawing_rect = False
-            annotator._save_annot = True
+            annotator._rect_drawn = True
 

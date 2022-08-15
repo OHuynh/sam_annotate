@@ -22,9 +22,17 @@ class Labeler:
         b = tk.Button(self._window, text="Save", command=lambda: self.save())
         b.pack()
 
+        b = tk.Button(self._window, text="Cancel", command=lambda: self.cancel())
+        b.pack()
+
         self._window.mainloop()
 
     def save(self):
         label = self._listbox.curselection()
-        self.annotator_callback(label, 0)
+        label = label if label else 0
+        self.annotator_callback(True, label, 0)
+        self._window.destroy()
+
+    def cancel(self):
+        self.annotator_callback(False, 0, 0)
         self._window.destroy()
