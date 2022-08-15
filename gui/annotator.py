@@ -1,6 +1,7 @@
 import cv2
 from functools import partial
 
+from gui.labeler import Labeler
 
 
 class Annotator:
@@ -51,6 +52,8 @@ class Annotator:
                     cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
                     self._save_annot = False
                     self._frame = frame_to_show
+                    callback = partial(Annotator.label_emitter, self)
+                    Labeler(callback)
 
 
                 cv2.imshow(self._window_name, frame_to_show)
@@ -62,6 +65,9 @@ class Annotator:
                 elif c == ord('-') and frame_idx > 1:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx - 1)
 
+    def label_emitter(self, label, obj_id):
+        self._label = label
+        self._obj_to_id = obj_id
 
     @staticmethod
     def _draw_bb(action, x, y, flags, *userdata):
