@@ -1,16 +1,17 @@
 from data.sequence_bound import SequenceBound
 
+from gui.labeler import Labeler
 
 class Database:
     def __init__(self):
         self._database = {}
 
     def add_sample(self, sequence_bb, label, obj_id):
-        sequence = SequenceBound(sequence_bb, label, obj_id)
+        sequence = SequenceBound(sequence_bb)
 
         valid_sequence = True
         if obj_id in self._database:
-            for other_seq in self._database[obj_id]:
+            for other_seq in self._database[obj_id][1]:
                 not_intersect = (sequence.time_markers[0] < sequence.time_markers[1] <
                                  other_seq.time_markers[0] < other_seq.time_markers[1]) \
                                 or \
@@ -19,5 +20,21 @@ class Database:
                 if not not_intersect:
                     valid_sequence = False
                     break
+        else:
+            self._database[obj_id] = [label, []]
+
         if valid_sequence:
-            self._database[obj_id].append(sequence)
+            self._database[obj_id][1].append(sequence)
+        print(self)
+
+    def __str__(self):
+        string = ''
+        for annot in self._database:
+
+            string += f'id : {annot} class : {Labeler.classes[self._database[annot][0]]} \n'
+            for sequence in self._database[annot][1]:
+                string += str(sequence)
+                string += "\n"
+
+            string += '\n ------------------------------------------- \n'
+        return string

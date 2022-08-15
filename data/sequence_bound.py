@@ -1,5 +1,5 @@
 class SequenceBound:
-    def __init__(self, sequence_bb, label, obj_id):
+    def __init__(self, sequence_bb):
         sorted_sequence = sequence_bb
 
         # because gui appears only until the second
@@ -15,3 +15,7 @@ class SequenceBound:
             self.time_markers.append(annot[0])
             self.bb.append((annot[1], annot[2]))
             self.type_traj.append(annot[3])
+
+    def __str__(self):
+
+        return f"{[(time, bb, type_traj) for time, bb, type_traj in zip(self.time_markers, self.bb, self.type_traj)]}"
