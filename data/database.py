@@ -2,6 +2,7 @@ from data.sequence_bound import SequenceBound
 
 from gui.labeler import Labeler
 
+
 class Database:
     def __init__(self):
         self._database = {}

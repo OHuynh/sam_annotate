@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 from functools import partial
 
 from gui.labeler import Labeler, LabelerAction
@@ -32,6 +33,10 @@ class Annotator:
         self._type_trajectory = None
         self._sequence_bb = []
 
+        max_obj_per_video = 500
+        np.random.seed(0)
+        self.color_id = np.random.randint(low=0, high=255, size=(3, max_obj_per_video))
+
     def init_window(self):
         # init the window
         cv2.namedWindow(self._window_name, cv2.WINDOW_AUTOSIZE)
@@ -52,6 +57,19 @@ class Annotator:
             prev_frame_idx = frame_idx
             if self._ret:
                 frame_to_show = self._frame.copy()
+                for obj_id in self._database._database:
+                    for sequence in self._database._database[obj_id][1]:
+                        for chunk_idx in range(len(sequence.time_markers) - 1):
+                            if sequence.time_markers[chunk_idx] < frame_idx < sequence.time_markers[chunk_idx + 1]:
+                                cv2.rectangle(frame_to_show,
+                                              sequence.bb[chunk_idx][0],
+                                              sequence.bb[chunk_idx][1],
+                                              self.color_id[:, obj_id].tolist(), 2, 8)
+                                cv2.rectangle(frame_to_show,
+                                              sequence.bb[chunk_idx + 1][0],
+                                              sequence.bb[chunk_idx + 1][1],
+                                              self.color_id[:, obj_id].tolist(), 2, 8)
+
                 if self._drawing_rect:
                     cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
                 if self._rect_drawn:
