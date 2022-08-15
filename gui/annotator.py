@@ -1,7 +1,7 @@
 import cv2
 from functools import partial
 
-from gui.labeler import Labeler
+from gui.labeler import Labeler, LabelerAction
 
 
 class Annotator:
@@ -25,9 +25,10 @@ class Annotator:
 
         # variables to store annotations
         self._label = None
-        self._obj_to_id = None
-        self._should_save = None
-        self._start_end_bb = []
+        self._obj_id = None
+        self._labeler_action = None
+        self._type_trajectory = None
+        self._sequence_bb = []
 
     def init_window(self):
         # init the window
@@ -53,19 +54,23 @@ class Annotator:
                     cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
                 if self._rect_drawn:
                     self._rect_drawn = False
-                    self._start_end_bb.append((frame_idx, self._top_left, self._bottom_right))
+                    self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
                     show_rect = False
-                    if len(self._start_end_bb) >= 2:
+                    if len(self._sequence_bb) >= 2:
                         Labeler(callback)
-                        if self._should_save:
+                        if self._labeler_action == LabelerAction.SAVE:
                             show_rect = True
-                        self._start_end_bb = []
+
+                            self._sequence_bb = []
+                        elif self._labeler_action == LabelerAction.CONTINUE:
+                            show_rect = True
+                        elif self._labeler_action == LabelerAction.CANCEL:
+                            self._sequence_bb = []
                     else:
                         show_rect = True
                     if show_rect:
                         cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
                         self._frame = frame_to_show
-
 
                 cv2.imshow(self._window_name, frame_to_show)
                 c = cv2.waitKey(25)
@@ -76,10 +81,11 @@ class Annotator:
                 elif c == ord('-') and frame_idx > 1:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx - 1)
 
-    def label_emitter(self, should_save, label, obj_id):
+    def label_emitter(self, labeler_action, label, obj_id, type_trajectory):
         self._label = label
-        self._obj_to_id = obj_id
-        self._should_save = should_save
+        self._obj_id = obj_id
+        self._type_trajectory = type_trajectory
+        self._labeler_action = labeler_action
 
     @staticmethod
     def _draw_bb(action, x, y, flags, *userdata):
