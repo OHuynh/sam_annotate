@@ -8,8 +8,10 @@ class Annotator:
     """
     Main gui class to annotate bounding box and to read the video
     """
-    def __init__(self, cap):
+    def __init__(self, cap, database):
         self._cap = cap
+        self._database = database
+
         self._nb_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         self._window_name = 'SAM'
         self._trackbar_name = 'time'
@@ -54,19 +56,23 @@ class Annotator:
                     cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
                 if self._rect_drawn:
                     self._rect_drawn = False
-                    self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
                     show_rect = False
-                    if len(self._sequence_bb) >= 2:
+                    if len(self._sequence_bb) >= 1:
                         Labeler(callback)
+                        self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
+
                         if self._labeler_action == LabelerAction.SAVE:
                             show_rect = True
-
+                            self._database.add_sample(self._sequence_bb,
+                                                      self._label,
+                                                      self._obj_id)
                             self._sequence_bb = []
                         elif self._labeler_action == LabelerAction.CONTINUE:
                             show_rect = True
                         elif self._labeler_action == LabelerAction.CANCEL:
                             self._sequence_bb = []
                     else:
+                        self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, None))
                         show_rect = True
                     if show_rect:
                         cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
