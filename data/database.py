@@ -30,6 +30,8 @@ class Database:
 
         if valid_sequence:
             self._database[obj_id][1].append(sequence)
+        else:
+            print('Discard this annotation because it intersects another previously annotated sequence.')
         print(self)
 
     def get_list_str_obj(self):
