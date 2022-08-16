@@ -76,7 +76,7 @@ class Annotator:
                     self._rect_drawn = False
                     show_rect = False
                     if len(self._sequence_bb) >= 1:
-                        Labeler(callback)
+                        Labeler(callback, self._database)
                         self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
 
                         if self._labeler_action == LabelerAction.SAVE:

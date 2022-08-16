@@ -10,6 +10,10 @@ class Database:
     def add_sample(self, sequence_bb, label, obj_id):
         sequence = SequenceBound(sequence_bb)
 
+        # assign a new object
+        if obj_id == -1:
+            obj_id = len(self._database)
+
         valid_sequence = True
         if obj_id in self._database:
             for other_seq in self._database[obj_id][1]:
@@ -27,6 +31,9 @@ class Database:
         if valid_sequence:
             self._database[obj_id][1].append(sequence)
         print(self)
+
+    def get_list_str_obj(self):
+        return [f'ID {obj_id} Class {Labeler.classes[self._database[obj_id][0]]}' for obj_id in self._database]
 
     def __str__(self):
         string = ''
