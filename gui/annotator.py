@@ -36,6 +36,7 @@ class Annotator:
         max_obj_per_video = 500
         np.random.seed(0)
         self.color_id = np.random.randint(low=0, high=255, size=(3, max_obj_per_video))
+        self.font = cv2.FONT_HERSHEY_PLAIN
 
     def init_window(self):
         # init the window
@@ -57,24 +58,19 @@ class Annotator:
             prev_frame_idx = frame_idx
             if self._ret:
                 frame_to_show = self._frame.copy()
-                for obj_id in self._database._database:
-                    for sequence in self._database._database[obj_id][1]:
-                        for chunk_idx in range(len(sequence.time_markers) - 1):
-                            if sequence.time_markers[chunk_idx] < frame_idx < sequence.time_markers[chunk_idx + 1]:
-                                cv2.rectangle(frame_to_show,
-                                              sequence.bb[chunk_idx][0],
-                                              sequence.bb[chunk_idx][1],
-                                              self.color_id[:, obj_id].tolist(), 1)
-                                cv2.rectangle(frame_to_show,
-                                              sequence.bb[chunk_idx + 1][0],
-                                              sequence.bb[chunk_idx + 1][1],
-                                              self.color_id[:, obj_id].tolist(), 1)
+                self.display_chunk_seq(frame_idx, frame_to_show)
 
                 if self._drawing_rect:
                     cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2)
                 if self._rect_drawn:
                     self._rect_drawn = False
                     show_rect = False
+                    top_left = (min(self._top_left[0], self._bottom_right[0]),
+                                min(self._top_left[1], self._bottom_right[1]))
+                    bottom_right = (max(self._top_left[0], self._bottom_right[0]),
+                                    max(self._top_left[1], self._bottom_right[1]))
+                    self._top_left = top_left
+                    self._bottom_right = bottom_right
                     if len(self._sequence_bb) >= 1:
                         Labeler(callback, self._database)
                         self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
@@ -104,6 +100,34 @@ class Annotator:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx + 1)
                 elif c == ord('-') and frame_idx > 1:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx - 1)
+
+    def display_chunk_seq(self, frame_idx, frame_to_show):
+        for obj_id in self._database.database:
+            for sequence in self._database.database[obj_id][1]:
+                for chunk_idx in range(len(sequence.time_markers) - 1):
+                    if sequence.time_markers[chunk_idx] <= frame_idx <= sequence.time_markers[chunk_idx + 1]:
+                        thickness = 2 if sequence.time_markers[chunk_idx] == frame_idx else 1
+                        color = self.color_id[:, obj_id].tolist()
+                        label = f'{obj_id} {Labeler.classes[self._database.database[obj_id][0]]}'
+                        cv2.rectangle(frame_to_show,
+                                      sequence.bb[chunk_idx][0],
+                                      sequence.bb[chunk_idx][1],
+                                      color, thickness)
+                        cv2.putText(frame_to_show,
+                                    label,
+                                    (sequence.bb[chunk_idx][0][0], sequence.bb[chunk_idx][0][1] + 30),
+                                    self.font, 1, color, 1)
+
+                        thickness = 2 if sequence.time_markers[chunk_idx + 1] == frame_idx else 1
+                        cv2.rectangle(frame_to_show,
+                                      sequence.bb[chunk_idx + 1][0],
+                                      sequence.bb[chunk_idx + 1][1],
+                                      color, thickness)
+                        cv2.putText(frame_to_show,
+                                    label,
+                                    (sequence.bb[chunk_idx + 1][0][0], sequence.bb[chunk_idx + 1][0][1] + 30),
+                                    self.font, 1, color, 1)
+        return frame_to_show
 
     def label_emitter(self, labeler_action, label, obj_id, type_trajectory):
         self._label = label
