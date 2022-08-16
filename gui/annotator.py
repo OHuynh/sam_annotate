@@ -64,14 +64,14 @@ class Annotator:
                                 cv2.rectangle(frame_to_show,
                                               sequence.bb[chunk_idx][0],
                                               sequence.bb[chunk_idx][1],
-                                              self.color_id[:, obj_id].tolist(), 2, 8)
+                                              self.color_id[:, obj_id].tolist(), 1)
                                 cv2.rectangle(frame_to_show,
                                               sequence.bb[chunk_idx + 1][0],
                                               sequence.bb[chunk_idx + 1][1],
-                                              self.color_id[:, obj_id].tolist(), 2, 8)
+                                              self.color_id[:, obj_id].tolist(), 1)
 
                 if self._drawing_rect:
-                    cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
+                    cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2)
                 if self._rect_drawn:
                     self._rect_drawn = False
                     show_rect = False
@@ -93,7 +93,7 @@ class Annotator:
                         self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, None))
                         show_rect = True
                     if show_rect:
-                        cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2, 8)
+                        cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, (0, 255, 0), 2)
                         self._frame = frame_to_show
 
                 cv2.imshow(self._window_name, frame_to_show)

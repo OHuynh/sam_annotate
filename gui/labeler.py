@@ -29,13 +29,15 @@ class Labeler:
 
 
         classes_var = tk.StringVar(value=self.classes)
-        self._classes_list = tk.Listbox(self._window, listvariable=classes_var, height=len(self.classes))
+        self._classes_list = tk.Listbox(self._window, listvariable=classes_var, height=len(self.classes),
+                                        exportselection=0)
         self._classes_list.pack()
 
         trajectories_type_var = tk.StringVar(value=self.trajectories_type)
         self._trajectory_list = tk.Listbox(self._window,
                                            listvariable=trajectories_type_var,
-                                           height=len(self.trajectories_type))
+                                           height=len(self.trajectories_type),
+                                           exportselection=0)
         self._trajectory_list.pack()
 
         b = tk.Button(self._window, text="Save", command=lambda: self.save())
