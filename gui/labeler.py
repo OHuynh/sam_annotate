@@ -5,13 +5,9 @@ from enum import Enum
 class LabelerAction(Enum):
     SAVE = 1
     CONTINUE = 2
-    CANCEL = 3
+    DISCARD = 3
+    CANCEL = 4
 
-
-class LabelerAction(Enum):
-    SAVE = 1
-    CONTINUE = 2
-    CANCEL = 3
 
 class Labeler:
     classes = ('Autonomous Shuttle', 'Shuttle', 'Car', 'Pedestrian')
@@ -57,8 +53,11 @@ class Labeler:
         b = tk.Button(self._window, text="Continue", command=lambda: self.keep_on())
         b.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
 
-        b = tk.Button(self._window, text="Cancel", command=lambda: self.cancel())
+        b = tk.Button(self._window, text="Discard", command=lambda: self.discard())
         b.grid(column=0, row=3, sticky=tk.W, padx=5, pady=5)
+
+        b = tk.Button(self._window, text="Cancel", command=lambda: self.cancel())
+        b.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
 
         self._window.mainloop()
 
@@ -82,6 +81,11 @@ class Labeler:
         self.annotator_callback(LabelerAction.CONTINUE, label, id, trajectory)
         self._window.destroy()
 
+    def discard(self):
+        self.annotator_callback(LabelerAction.DISCARD, 0, -1, 0)
+        self._window.destroy()
+
     def cancel(self):
         self.annotator_callback(LabelerAction.CANCEL, 0, -1, 0)
         self._window.destroy()
+

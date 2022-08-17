@@ -138,8 +138,11 @@ class Annotator:
                             self._sequence_bb = []
                         elif self._labeler_action == LabelerAction.CONTINUE:
                             show_rect = True
-                        elif self._labeler_action == LabelerAction.CANCEL:
+                        elif self._labeler_action == LabelerAction.DISCARD:
                             self._sequence_bb = []
+                        elif self._labeler_action == LabelerAction.CANCEL:
+                            self._sequence_bb.pop(-1)
+
                     else:
                         self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, None))
                         show_rect = True
