@@ -35,7 +35,7 @@ class Database:
             if len(sequence_bb) == 1 and not len(sequence_to_merge):
                 valid_sequence = False
                 error_message = error_one_sample_alone
-            else:
+            elif len(sequence_to_merge):
                 for idx in indices_to_pop[::-1]:
                     self.database[obj_id][1].pop(idx)
                 new_seq = []
