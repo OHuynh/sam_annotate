@@ -74,10 +74,10 @@ class Annotator:
                     label = f'{obj_id} {Labeler.classes[self._database.database[obj_id][0]]}'
                     for sequence in self._database.database[obj_id][1]:
                         frame_to_show, new_chunks_displayed = self.display_chunk_seq(sequence,
-                                                                                 frame_idx,
-                                                                                 frame_to_show,
-                                                                                 color,
-                                                                                 label)
+                                                                                     frame_idx,
+                                                                                     frame_to_show,
+                                                                                     color,
+                                                                                     label)
                         chunks_displayed = new_chunks_displayed + chunks_displayed
 
                 if len(self._sequence_bb) > 0:
@@ -179,7 +179,11 @@ class Annotator:
                               color, thickness)
                 cv2.putText(frame_to_show,
                             label,
-                            (sequence.bb[chunk_idx][0][0], sequence.bb[chunk_idx][0][1] + 30),
+                            (sequence.bb[chunk_idx][0][0], sequence.bb[chunk_idx][0][1] + 15),
+                            self.font, 1, color, 1)
+                cv2.putText(frame_to_show,
+                            f'{sequence.time_markers[chunk_idx]}',
+                            (sequence.bb[chunk_idx][0][0], sequence.bb[chunk_idx][1][1] - 7),
                             self.font, 1, color, 1)
 
                 thickness = 2 if sequence.time_markers[chunk_idx + 1] == frame_idx else 1
@@ -189,7 +193,11 @@ class Annotator:
                               color, thickness)
                 cv2.putText(frame_to_show,
                             label,
-                            (sequence.bb[chunk_idx + 1][0][0], sequence.bb[chunk_idx + 1][0][1] + 30),
+                            (sequence.bb[chunk_idx + 1][0][0], sequence.bb[chunk_idx + 1][0][1] + 15),
+                            self.font, 1, color, 1)
+                cv2.putText(frame_to_show,
+                            f'{sequence.time_markers[chunk_idx + 1]}',
+                            (sequence.bb[chunk_idx + 1][0][0], sequence.bb[chunk_idx + 1][1][1] - 7),
                             self.font, 1, color, 1)
                 chunks_displayed.append((sequence, chunk_idx))
                 chunks_displayed.append((sequence, chunk_idx + 1))
