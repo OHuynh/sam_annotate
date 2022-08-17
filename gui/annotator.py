@@ -151,8 +151,20 @@ class Annotator:
 
                 cv2.imshow(self._window_name, frame_to_show)
                 c = cv2.waitKey(25)
+
                 if c == ord('q'):
                     break
+                elif c == ord(' ') and len(self._sequence_bb):
+                    if len(self._sequence_bb) == 1:
+                        Labeler(callback, self._database)
+                        sequence_bb = list(self._sequence_bb[0])
+                        sequence_bb[3] = self._type_trajectory
+                        self._sequence_bb[0] = tuple(sequence_bb)
+
+                    self._database.add_sample(self._sequence_bb,
+                                              self._label,
+                                              self._obj_id)
+                    self._sequence_bb = []
                 elif c == ord('+') and frame_idx < self._nb_frames - 1:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx + 1)
                     if self._mode_editing_rect and self._bb_edited:

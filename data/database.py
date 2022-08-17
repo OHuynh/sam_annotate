@@ -15,23 +15,44 @@ class Database:
             obj_id = len(self.database)
 
         valid_sequence = True
+        error_message = ''
+        error_one_sample_alone = 'Annotation shall be a sequence of at least 2 boxes or be between two annotation.'
         if obj_id in self.database:
-            for other_seq in self.database[obj_id][1]:
-                not_intersect = (sequence.time_markers[0] < sequence.time_markers[1] <
-                                 other_seq.time_markers[0] < other_seq.time_markers[1]) \
-                                or \
-                                (other_seq.time_markers[0] < other_seq.time_markers[1] <
-                                 sequence.time_markers[0] < sequence.time_markers[1])
-                if not not_intersect:
-                    valid_sequence = False
-                    break
+            sequence_to_merge = []
+            indices_to_pop = []
+            for idx, other_seq in enumerate(self.database[obj_id][1]):
+                intersect = not ((sequence.time_markers[0] <= sequence.time_markers[-1] <
+                                  other_seq.time_markers[0] <= other_seq.time_markers[-1])
+                                 or
+                                 (other_seq.time_markers[0] <= other_seq.time_markers[-1] <
+                                  sequence.time_markers[0] <= sequence.time_markers[-1]))
+                if intersect:
+                    if not len(sequence_to_merge):
+                        sequence_to_merge.append(sequence)
+                    sequence_to_merge.append(other_seq)
+                    indices_to_pop.append(idx)
+
+            if len(sequence_bb) == 1 and not len(sequence_to_merge):
+                valid_sequence = False
+                error_message = error_one_sample_alone
+            else:
+                for idx in indices_to_pop[::-1]:
+                    self.database[obj_id][1].pop(idx)
+                new_seq = []
+                for seq in sequence_to_merge:
+                    new_seq += seq.sequence
+                sequence = SequenceBound(new_seq)
         else:
-            self.database[obj_id] = [label, []]
+            if len(sequence_bb) == 1:
+                valid_sequence = False
+                error_message = error_one_sample_alone
+            else:
+                self.database[obj_id] = [label, []]
 
         if valid_sequence:
             self.database[obj_id][1].append(sequence)
         else:
-            print('Discard this annotation because it intersects another previously annotated sequence.')
+            print(error_message)
         print(self)
 
     def get_list_str_obj(self):
