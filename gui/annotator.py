@@ -109,13 +109,15 @@ class Annotator:
                             pos = np.array(self._edit_pos)
                             if top_left[0] <= self._edit_pos[0] <= bottom_right[0] and \
                                top_left[1] <= self._edit_pos[1] <= bottom_right[1]:
-                                # tl, tr, bl, br
+                                # tl, tr, bl, br, center
                                 nearest_point_clicked.append((np.linalg.norm(top_left - pos), 0, chunk))
                                 nearest_point_clicked.append((np.linalg.norm([bottom_right[0] - pos[0],
                                                                               top_left[1] - pos[1]]), 1, chunk))
                                 nearest_point_clicked.append((np.linalg.norm([top_left[0] - pos[0],
                                                                               bottom_right[1] - pos[1]]), 2, chunk))
                                 nearest_point_clicked.append((np.linalg.norm(bottom_right - pos), 3, chunk))
+                                nearest_point_clicked.append((np.linalg.norm(top_left + (bottom_right - top_left) / 2 - pos),
+                                                              4, chunk))
                         # edit the closest point from where the user has clicked
                         nearest_point_clicked.sort(key=lambda pt: pt[0])
                         if len(nearest_point_clicked):

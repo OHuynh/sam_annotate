@@ -1,3 +1,5 @@
+import numpy as np
+
 from utils.geometry import get_tl_br
 
 class SequenceBound:
@@ -35,6 +37,12 @@ class SequenceBound:
             bottom_right[1] = new_pos[1]
         elif point == 3:  # br
             bottom_right = new_pos
+        elif point == 4:  # center
+            half_size = (np.array(bottom_right) - np.array(top_left)) / 2.0
+            half_size = half_size.astype(dtype=np.int32)
+            top_left = new_pos - half_size
+            bottom_right = new_pos + half_size
+
         top_left, bottom_right = get_tl_br(top_left, bottom_right)
 
         self.bb[chunk_idx] = (top_left, bottom_right)
