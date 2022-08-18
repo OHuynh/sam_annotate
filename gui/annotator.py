@@ -138,6 +138,15 @@ class Annotator:
                     show_rect = False
                     self._top_left, self._bottom_right = get_tl_br(self._top_left, self._bottom_right)
 
+                    # check if another rect has been drawn at this frame (and overwrite it with this new one)
+                    overwrite = False
+                    for idx in range(len(self._sequence_bb)):
+                        if self._sequence_bb[idx][0] == frame_idx:
+                            overwrite = True
+                            break
+                    if overwrite:
+                        self._sequence_bb.pop(idx)
+
                     if len(self._sequence_bb) >= 1:
                         Labeler(callback, self._database)
                         self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
