@@ -12,6 +12,10 @@ class SequenceBound:
             first_annot = sorted_sequence.pop(0)
             sorted_sequence.append((*first_annot[:-1], sorted_sequence[0][3]))
         sorted_sequence.sort(key=lambda annot: annot[0])
+        # remove boxes at same frame
+        for idx in range(len(sorted_sequence) - 1, 0, -1):
+            if sorted_sequence[idx - 1][0] == sorted_sequence[idx][0]:
+                sorted_sequence.pop(idx)
 
         self.time_markers = []
         self.bb = []
