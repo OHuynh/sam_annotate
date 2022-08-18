@@ -12,7 +12,7 @@ class SequenceBound:
             first_annot = sorted_sequence.pop(0)
             sorted_sequence.append((*first_annot[:-1], sorted_sequence[0][3]))
         sorted_sequence.sort(key=lambda annot: annot[0])
-        self.sequence = sorted_sequence
+
         self.time_markers = []
         self.bb = []
         self.type_traj = []
@@ -47,3 +47,8 @@ class SequenceBound:
 
         self.bb[chunk_idx] = (top_left, bottom_right)
         self.time_markers[chunk_idx] = frame_idx
+
+    @property
+    def sequence(self):
+        return [(time, bb[0], bb[1], type_traj)
+                for time, bb, type_traj in zip(self.time_markers, self.bb, self.type_traj)]
