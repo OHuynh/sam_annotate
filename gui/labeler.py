@@ -10,8 +10,8 @@ class LabelerAction(Enum):
 
 
 class Labeler:
-    classes = ('Autonomous Shuttle', 'Shuttle', 'Car', 'Pedestrian')
-    trajectories_type = ('Linear', 'Circular', 'Bezier')
+    classes = ('Pedestrian', 'Car', 'Autonomous Shuttle', 'Shuttle')
+    trajectories_type = ('Linear', 'Circular', 'Bezier', 'Static')
     """
     GUI class which is displayed when the start and end frames are annotated
     """
