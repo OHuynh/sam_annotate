@@ -48,6 +48,8 @@ class Annotator:
         self.font = cv2.FONT_HERSHEY_PLAIN
         self.color_annotate = (0, 255, 0)
 
+        self._boxes_interpolated = []
+
     def init_window(self):
         # init the window
         cv2.namedWindow(self._window_name, cv2.WINDOW_AUTOSIZE)
@@ -68,6 +70,12 @@ class Annotator:
             prev_frame_idx = frame_idx
             if self._ret:
                 frame_to_show = self._frame.copy()
+
+                # draw interpolated boxes
+                for box in self._boxes_interpolated:
+                    if box[0] == frame_idx:
+                        cv2.rectangle(frame_to_show, box[1][0], box[1][1], (255, 0, 0), 2)
+
                 chunks_displayed = []
                 for obj_id in self._database.database:
                     color = self.color_id[obj_id, :].tolist()
@@ -179,6 +187,8 @@ class Annotator:
                                                    self._bb_edited[1][1],
                                                    self._edit_pos,
                                                    frame_idx)
+                elif c == ord('a'):
+                    self._boxes_interpolated = self.compute_interpolation()
 
     def display_chunk_seq(self, sequence, frame_idx, frame_to_show, color, label):
         chunks_displayed = []
@@ -246,3 +256,30 @@ class Annotator:
                 annotator._edit_pos = (x, y)
                 annotator._mode_editing_rect = False
                 annotator._mode_rect_edited = True
+
+    def compute_interpolation(self):
+        """
+        TODO : @Josue implementation of the interpolation
+        :return: list of tuples (frame, (top_left, bottom_right)) which will be displayed
+        """
+        # object containing the data
+        # self._database.database
+        # format : {key_id_0: [label_0, [[sequence_0], [sequence_1]]],
+        #           key_id_1: ...}
+        # sequence object of type SequenceBound
+
+        # example linear interpol of first sequence of object 0 (between first and last frame)
+        obj_id = 0
+        seq_to_interpolate = 0
+        assert obj_id in self._database.database, 'Object 0 not annotated yet'
+
+        first_bb = self._database.database[obj_id][1][seq_to_interpolate].bb[0]
+        last_bb = self._database.database[obj_id][1][seq_to_interpolate].bb[-1]
+
+        first_time_marker = self._database.database[obj_id][1][seq_to_interpolate].time_markers[0]
+        last_time_marker = self._database.database[obj_id][1][seq_to_interpolate].time_markers[-1]
+        step = (np.array(last_bb) - np.array(first_bb)) / (last_time_marker - first_time_marker)
+        interpolated_boxes = []
+        for i in range(first_time_marker, last_time_marker):
+            interpolated_boxes.append((i, (np.array(first_bb) + step * (i - first_time_marker)).astype(dtype=np.int32)))
+        return interpolated_boxes
