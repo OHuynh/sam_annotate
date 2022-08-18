@@ -22,6 +22,7 @@ class Annotator:
         self._trackbar_name = 'time'
         self._ret = False
         self._frame = None
+        self._mode_play = False
         self.init_window()
 
         # variables for drawing bb
@@ -64,7 +65,10 @@ class Annotator:
         callback = partial(Annotator.label_emitter, self)
         while cap.isOpened() and self._ret:
             frame_idx = cv2.getTrackbarPos(self._trackbar_name, self._window_name)
+            if self._mode_play:
+                frame_idx += 1
             if frame_idx != prev_frame_idx:
+                cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx)
                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
                 self._ret, self._frame = cap.read()
             prev_frame_idx = frame_idx
@@ -162,7 +166,7 @@ class Annotator:
 
                 if c == ord('q'):
                     break
-                elif c == ord(' ') and len(self._sequence_bb):
+                elif c == ord('n') and len(self._sequence_bb):
                     if len(self._sequence_bb) == 1:
                         Labeler(callback, self._database)
                         sequence_bb = list(self._sequence_bb[0])
@@ -189,6 +193,11 @@ class Annotator:
                                                    frame_idx)
                 elif c == ord('a'):
                     self._boxes_interpolated = self.compute_interpolation()
+                elif c == ord(' '):
+                    if self._mode_editing_rect or self._mode_drawing_rect:
+                        print("Release editing/drawing mode to play the video.")
+                    else:
+                        self._mode_play = not self._mode_play
 
     def display_chunk_seq(self, sequence, frame_idx, frame_to_show, color, label):
         chunks_displayed = []
@@ -234,6 +243,10 @@ class Annotator:
     @staticmethod
     def _draw_bb(action, x, y, flags, *userdata):
         annotator = userdata[0]
+
+        if annotator._mode_play:
+            return
+
         if not annotator._mode_editing_rect:
             if action == cv2.EVENT_LBUTTONDOWN:
                 annotator._top_left = (x, y)
