@@ -174,10 +174,9 @@ class Annotator:
 
                 cv2.imshow(self._window_name, frame_to_show)
                 c = cv2.waitKey(25)
-
                 if c == ord('q'):
                     break
-                elif c == ord('n') and len(self._sequence_bb):
+                elif c == 13 and len(self._sequence_bb):  # enter
                     if len(self._sequence_bb) == 1:
                         Labeler(callback, self._database)
                         sequence_bb = list(self._sequence_bb[0])
@@ -209,6 +208,12 @@ class Annotator:
                         print("Release editing/drawing mode to play the video.")
                     else:
                         self._mode_play = not self._mode_play
+                elif c == 8:  # backspace
+                    if self._mode_editing_rect:
+                        self._bb_edited[1][0].delete(self._bb_edited[1][1])
+                        self._bb_edited = None
+                    else:
+                        print("Select a box with right click to delete it.")
 
     def display_chunk_seq(self, sequence, frame_idx, frame_to_show, color, label):
         chunks_displayed = []

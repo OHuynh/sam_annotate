@@ -48,6 +48,14 @@ class SequenceBound:
         self.bb[chunk_idx] = (top_left, bottom_right)
         self.time_markers[chunk_idx] = frame_idx
 
+    def delete(self, chunk_idx):
+        if len(self.bb) <= 2:
+            print("Can not remove box in sequence with length < 2 !")
+            return
+        self.bb.pop(chunk_idx)
+        self.time_markers.pop(chunk_idx)
+        self.type_traj.pop(chunk_idx)
+
     @property
     def sequence(self):
         return [(time, bb[0], bb[1], type_traj)
