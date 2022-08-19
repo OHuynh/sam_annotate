@@ -175,6 +175,7 @@ class Annotator:
                 cv2.imshow(self._window_name, frame_to_show)
                 c = cv2.waitKey(25)
                 if c == ord('q'):
+                    self._database.save_coco_format_json(cap)
                     break
                 elif c == 13 and len(self._sequence_bb):  # enter
                     if len(self._sequence_bb) == 1:
