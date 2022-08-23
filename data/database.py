@@ -96,7 +96,7 @@ class Database:
         for idx, label in enumerate(Labeler.classes):
             category = {'id': idx + 1,
                         'name': label}
-            categories.append([category])
+            categories.append(category)
         
         annotations = []
 
@@ -115,8 +115,8 @@ class Database:
                                                                                         # reserves 0 for 'empty'
                                           'bbox': [bb[0][0],  # x
                                                    bb[0][1],  # y
-                                                   bb[0][0] + bb[1][0],   # width
-                                                   bb[0][1] + bb[1][1]],  # height
+                                                   bb[1][0] - bb[0][0],   # width
+                                                   bb[1][1] - bb[0][1]],  # height
                                           'sequence_level_annotation': False
                                           }
                             annotations.append(annotation)
@@ -131,11 +131,12 @@ class Database:
 
                 image = {
                     'id': str(len(images)),
-                    'file_name': saved_path,
+                    'file_name': str(len(images)) + '.png',
+                    'location': path_img,
                     # Optional
                     'width': frame.shape[1],
                     'height': frame.shape[0],
-                    'datetime': '', # datetime.today(), # todo compute the date of this frame using the fps
+                    'date_captured': '', # datetime.today(), # todo compute the date of this frame using the fps
                     'seq_id': '',
                     'seq_num_frames': 0,
                     'frame_num': 0
