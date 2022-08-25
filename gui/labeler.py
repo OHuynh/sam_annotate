@@ -1,6 +1,8 @@
 import tkinter as tk
 from enum import Enum
 
+from data.sequence_bound import TrajectoryTypes
+
 
 class LabelerAction(Enum):
     SAVE = 1
@@ -11,7 +13,6 @@ class LabelerAction(Enum):
 
 class Labeler:
     classes = ('Pedestrian', 'Car', 'Autonomous Shuttle', 'Shuttle')
-    trajectories_type = ('Linear', 'Circular', 'Bezier', 'Static')
     """
     GUI class which is displayed when the start and end frames are annotated
     """
@@ -29,11 +30,11 @@ class Labeler:
         self._classes_list = tk.Listbox(self._window, listvariable=classes_var, height=len(self.classes),
                                         exportselection=0)
         self._classes_list.grid(column=0, row=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
-
-        trajectories_type_var = tk.StringVar(value=self.trajectories_type)
+        trajectory_types_arr = [type_traj.name for type_traj in TrajectoryTypes]
+        trajectories_type_var = tk.StringVar(value=trajectory_types_arr)
         self._trajectory_list = tk.Listbox(self._window,
                                            listvariable=trajectories_type_var,
-                                           height=len(self.trajectories_type),
+                                           height=len(trajectory_types_arr),
                                            exportselection=0)
         self._trajectory_list.grid(column=0, row=1, columnspan=2, sticky=tk.W, padx=5, pady=5)
 

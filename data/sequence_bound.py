@@ -1,6 +1,16 @@
 import numpy as np
+from enum import Enum
 
 from utils.geometry import get_tl_br
+
+trajectories_type = ('Linear', 'Static')
+
+
+class TrajectoryTypes(Enum):
+    NONE = 0
+    LINEAR = 1
+    STATIC = 2
+
 
 class SequenceBound:
     def __init__(self, sequence_bb):
