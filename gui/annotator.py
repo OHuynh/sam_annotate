@@ -6,7 +6,7 @@ from utils.distinct_colors import COLORS
 from utils.geometry import get_tl_br
 
 from gui.labeler import Labeler, LabelerAction
-from data.sequence_bound import SequenceBound
+from data.sequence_bound import SequenceBound, TrajectoryTypes
 
 
 class Annotator:
@@ -215,6 +215,14 @@ class Annotator:
                         self._bb_edited = None
                     else:
                         print("Select a box with right click to delete it.")
+                elif c == ord('y'):  # use of a pretrained detector to annotate markers
+                    frame_idx, top_left, bottom_right, label, obj_id = self.get_new_markers(cap)
+                    self._top_left = top_left
+                    self._bottom_right = bottom_right
+                    self._label = label
+                    self._obj_id = obj_id
+                    self._mode_rect_drawn = True
+                    cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx)
 
     def display_chunk_seq(self, sequence, frame_idx, frame_to_show, color, label):
         chunks_displayed = []
@@ -286,6 +294,15 @@ class Annotator:
                 annotator._edit_pos = (x, y)
                 annotator._mode_editing_rect = False
                 annotator._mode_rect_edited = True
+
+    def get_new_markers(self, cap):
+        #TODO Call YOLO here
+        frame_idx = np.random.randint(1000)
+        top_left = (np.random.randint(500), np.random.randint(500))
+        bottom_right = (np.random.randint(500), np.random.randint(500))
+        label = 0
+        obj_id = 0
+        return frame_idx, top_left, bottom_right, label, obj_id
 
     def compute_interpolation(self):
         """

@@ -3,8 +3,6 @@ from enum import Enum
 
 from utils.geometry import get_tl_br
 
-trajectories_type = ('Linear', 'Static')
-
 
 class TrajectoryTypes(Enum):
     NONE = 0
@@ -15,7 +13,6 @@ class TrajectoryTypes(Enum):
 class SequenceBound:
     def __init__(self, sequence_bb):
         sorted_sequence = sequence_bb
-
         # because gui appears only until the second
         # store the type of trajectory of the second annot into the first one
         if len(sequence_bb) > 1:
@@ -30,10 +27,13 @@ class SequenceBound:
         self.time_markers = []
         self.bb = []
         self.type_traj = []
-        for annot in sorted_sequence:
+        self.sub_sequence = []
+        for idx, annot in enumerate(sorted_sequence):
             self.time_markers.append(annot[0])
             self.bb.append((annot[1], annot[2]))
             self.type_traj.append(annot[3])
+            if idx == len(sorted_sequence) - 1:
+                self.sub_sequence.append(SequenceBound([]))
 
     def __str__(self):
         return f"{[(time, bb, type_traj) for time, bb, type_traj in zip(self.time_markers, self.bb, self.type_traj)]}"
@@ -74,3 +74,7 @@ class SequenceBound:
     def sequence(self):
         return [(time, bb[0], bb[1], type_traj)
                 for time, bb, type_traj in zip(self.time_markers, self.bb, self.type_traj)]
+
+    def fill_between_markers(self, sequence_bb):
+        # todo
+        pass
