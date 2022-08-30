@@ -2,11 +2,24 @@ import cv2
 import numpy as np
 from functools import partial
 
-from utils.distinct_colors import COLORS
-from utils.geometry import get_tl_br
+from utiles.distinct_colors import COLORS
+from utiles.geometry import get_tl_br
 
 from gui.labeler import Labeler, LabelerAction
 from data.sequence_bound import SequenceBound, TrajectoryTypes
+
+import pandas as pd
+import torch
+import torch
+import cv2 as cv
+import numpy as np
+import math
+from shapely.geometry.polygon import Polygon
+
+from gui.labelling import detect_single_frame_with_YOLO, track_object_with_YOLO, bounding_box
+
+
+
 
 
 class Annotator:
@@ -302,6 +315,24 @@ class Annotator:
         bottom_right = (np.random.randint(500), np.random.randint(500))
         label = 0
         obj_id = 0
+
+        class_obj = self._database.database[len(self._database.database) - 1][0]
+        last_sequence_in_db = self._database.database[len(self._database.database) - 1][1]
+        last_sequence_in_db = last_sequence_in_db[0].sequence
+        initial_frame = last_sequence_in_db[0][0]
+        initial_top_left = last_sequence_in_db[0][1]
+        initial_bottom_right = last_sequence_in_db[0][2]
+        final_frame = last_sequence_in_db[1][0]
+        final_top_left = last_sequence_in_db[1][1]
+        final_bottom_right = last_sequence_in_db[1][2]
+        initial_bb = bounding_box(initial_frame,initial_top_left[0],initial_top_left[1],
+                     initial_bottom_right[0],initial_bottom_right[1],1.0,class_obj,Labeler.classes[0])
+        final_bb = bounding_box(final_frame,final_top_left[0],final_top_left[1],
+                     final_bottom_right[0],final_bottom_right[1],1.0,class_obj,Labeler.classes[0])
+
+        df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb)
+
+
         return frame_idx, top_left, bottom_right, label, obj_id
 
     def compute_interpolation(self):
