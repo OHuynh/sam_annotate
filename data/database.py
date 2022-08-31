@@ -48,7 +48,7 @@ class Database:
                 new_seq = []
                 for seq in sequence_to_merge:
                     new_seq += seq.sequence
-                sequence = SequenceBound(new_seq)
+                sequence = SequenceBound(new_seq, add_sub_seq=True)
         else:
             if len(sequence_bb) == 1:
                 valid_sequence = False
