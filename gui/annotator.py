@@ -26,9 +26,10 @@ class Annotator:
     """
     Main gui class to annotate bounding box and to read the video
     """
-    def __init__(self, cap, database):
+    def __init__(self, cap, database, YOLO_model):
         self._cap = cap
         self._database = database
+        self._YOLO_model = YOLO_model
 
         self._nb_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         self._window_name = 'SAM'
@@ -316,26 +317,9 @@ class Annotator:
         label = 0
         obj_id = 0
 
-        class_obj = self._database.database[len(self._database.database) - 1][0]
-        last_sequence_in_db = self._database.database[len(self._database.database) - 1][1]
-        last_sequence_in_db = last_sequence_in_db[0].sequence
-        initial_frame = last_sequence_in_db[0][0]
-        initial_top_left = last_sequence_in_db[0][1]
-        initial_bottom_right = last_sequence_in_db[0][2]
-        final_frame = last_sequence_in_db[1][0]
-        final_top_left = last_sequence_in_db[1][1]
-        final_bottom_right = last_sequence_in_db[1][2]
-        initial_bb = bounding_box(initial_frame,initial_top_left[0],initial_top_left[1],
-                     initial_bottom_right[0],initial_bottom_right[1],1.0,class_obj,Labeler.classes[0])
-        final_bb = bounding_box(final_frame,final_top_left[0],final_top_left[1],
-                     final_bottom_right[0],final_bottom_right[1],1.0,class_obj,Labeler.classes[0])
-
-        df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb)
-
-
         return frame_idx, top_left, bottom_right, label, obj_id
 
-    def compute_interpolation(self):
+    def compute_interpolation(self, cap):
         """
         TODO : @Josue implementation of the interpolation
         :return: list of tuples (frame, (top_left, bottom_right)) which will be displayed
@@ -350,6 +334,28 @@ class Annotator:
         obj_id = 0
         seq_to_interpolate = 0
         assert obj_id in self._database.database, 'Object 0 not annotated yet'
+
+        for sub_sequence_idx in range(self._database.database[0][1][0].sub_sequence):
+            class_obj = self._database.database[len(self._database.database) - 1][0]
+            last_sequence_in_db = self._database.database[len(self._database.database) - 1][1]
+            last_sequence_in_db = last_sequence_in_db[0].sequence
+            initial_frame = last_sequence_in_db[0][0]
+            initial_top_left = last_sequence_in_db[0][1]
+            initial_bottom_right = last_sequence_in_db[0][2]
+            final_frame = last_sequence_in_db[1][0]
+            final_top_left = last_sequence_in_db[1][1]
+            final_bottom_right = last_sequence_in_db[1][2]
+            initial_bb = bounding_box(initial_frame, initial_top_left[0], initial_top_left[1],
+                                      initial_bottom_right[0], initial_bottom_right[1], 1.0, class_obj,
+                                      Labeler.classes[0])
+            final_bb = bounding_box(final_frame, final_top_left[0], final_top_left[1],
+                                    final_bottom_right[0], final_bottom_right[1], 1.0, class_obj, Labeler.classes[0])
+
+            df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb, self._YOLO_model)
+            #for data in df:
+            #    data.append([(df.frame_idx, (df.bb.top_left) (df.bb.bottom_right), LABEL_YOLO)])
+            #self._database.database[0][1][0].sub_sequence[0] = SequenceBound(data)
+
 
         first_bb = self._database.database[obj_id][1][seq_to_interpolate].bb[0]
         last_bb = self._database.database[obj_id][1][seq_to_interpolate].bb[-1]

@@ -6,12 +6,11 @@ import math
 from shapely.geometry.polygon import Polygon
 
 
-
-
 ################ For YOLO inference
-path_YOLO_model = 'D:/SAM/yolov5-master/model_yolov5m6.pt'
-# YOLO_model = torch.load(path_YOLO_model)
-YOLO_model = torch.hub.load('ultralytics/yolov5', 'yolov5m6')
+def load_yolo_model(path):
+    torch.hub.set_dir(path)
+    YOLO_model = torch.hub.load('ultralytics/yolov5', 'yolov5m6')
+    return YOLO_model
 
 
 class bounding_box:
@@ -42,7 +41,7 @@ def create_rectangle_from_df(df, index_to_use):
     return box
 
 
-def detect_single_frame_with_YOLO(frame):
+def detect_single_frame_with_YOLO(frame, YOLO_model):
     # using YOLO_model, detect all objects in frame
     results = YOLO_model(frame)
     # save as dataframe (format xyxy)
@@ -78,7 +77,7 @@ mouseX=0
 mouseY=0
 
 
-def track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb):
+def track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb, YOLO_model):
     # dataframe that will store all boxes generated automatically between initial_bounding_box and final_bounding_box
     result_from_detection_columns = ["frame", "method", "percentage of intersection", "xmin", "ymin", "xmax", "ymax", "confidence", "class", "name"]
     result_from_detection = pd.DataFrame(columns=result_from_detection_columns)
@@ -98,7 +97,7 @@ def track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb
         ret, frame = cap.read()
         # detect with yolo
         # output_from_detection is a dataframe that will contains all objects detected (with yolo) in frame_number
-        output_from_detection = detect_single_frame_with_YOLO(frame)
+        output_from_detection = detect_single_frame_with_YOLO(frame, YOLO_model)
         # inside output_from_detection look for the new box (representation of previous_bb in frame_number)
         df_new_box = find_new_box(previous_bb,output_from_detection,final_bb)
         ## too see old and new box
