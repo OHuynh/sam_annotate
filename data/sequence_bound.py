@@ -75,6 +75,13 @@ class SequenceBound:
         self.bb.pop(chunk_idx)
         self.time_markers.pop(chunk_idx)
         self.type_traj.pop(chunk_idx)
+        if 0 < chunk_idx < len(self.time_markers) - 1:
+            self.sub_sequence.pop(chunk_idx)
+            self.sub_sequence[chunk_idx - 1] = SequenceBound([])
+        elif 0 < chunk_idx:
+            self.sub_sequence.pop(chunk_idx - 1)
+        else:
+            self.sub_sequence.pop(chunk_idx)
 
     @property
     def sequence(self):
