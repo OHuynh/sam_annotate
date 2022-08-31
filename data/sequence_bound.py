@@ -1,7 +1,7 @@
 import numpy as np
 from enum import Enum
 
-from utils.geometry import get_tl_br
+from utiles.geometry import get_tl_br
 
 
 class TrajectoryTypes(Enum):
@@ -11,7 +11,11 @@ class TrajectoryTypes(Enum):
 
 
 class SequenceBound:
-    def __init__(self, sequence_bb):
+    def __init__(self, sequence_bb, add_sub_seq=False):
+        """
+        :param sequence_bb: object of type :
+                          [(frame_idx, (top_left_x, top_left,y), (bottom_right_x, bottom_right,y), type_traj)]
+        """
         sorted_sequence = sequence_bb
         # because gui appears only until the second
         # store the type of trajectory of the second annot into the first one
@@ -29,10 +33,8 @@ class SequenceBound:
         self.type_traj = []
         self.sub_sequence = []
         for idx, annot in enumerate(sorted_sequence):
-            self.time_markers.append(annot[0])
-            self.bb.append((annot[1], annot[2]))
-            self.type_traj.append(annot[3])
-            if idx == len(sorted_sequence) - 1:
+            self.add_frame(*annot)
+            if idx < len(sorted_sequence) - 1 and add_sub_seq:
                 self.sub_sequence.append(SequenceBound([]))
 
     def __str__(self):
@@ -75,6 +77,7 @@ class SequenceBound:
         return [(time, bb[0], bb[1], type_traj)
                 for time, bb, type_traj in zip(self.time_markers, self.bb, self.type_traj)]
 
-    def fill_between_markers(self, sequence_bb):
-        # todo
-        pass
+    def add_frame(self, time, top_left, bottom_right, type_traj):
+        self.time_markers.append(time)
+        self.bb.append((top_left, bottom_right))
+        self.type_traj.append(type_traj)

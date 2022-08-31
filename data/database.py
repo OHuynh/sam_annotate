@@ -6,14 +6,16 @@ from datetime import date, datetime
 from data.sequence_bound import SequenceBound
 from gui.labeler import Labeler
 
+from gui.labelling import detect_single_frame_with_YOLO, track_object_with_YOLO, bounding_box
 
 class Database:
-    def __init__(self, output_path):
+    def __init__(self, output_path, detection_model):
         self.database = {}
         self._output_path = output_path
+        self._detection_model = detection_model
 
     def add_sample(self, sequence_bb, label, obj_id):
-        sequence = SequenceBound(sequence_bb)
+        sequence = SequenceBound(sequence_bb, add_sub_seq=True)
 
         # assign a new object
         if obj_id == -1:
@@ -74,6 +76,36 @@ class Database:
 
             string += '\n ------------------------------------------- \n'
         return string
+
+    def interpolate(self, cap):
+        for obj in self.database:
+            class_obj = self.database[obj][0]
+            for seq in self.database[obj][1]:
+                for sub_seq_idx, sub_seq in enumerate(seq.sub_sequence):
+                    # do not re process if it contains frames
+                    if len(sub_seq.time_markers):
+                        continue
+                    initial_frame = seq.time_markers[sub_seq_idx]
+                    final_frame = seq.time_markers[sub_seq_idx + 1]
+                    initial_top_left = seq.bb[sub_seq_idx][0]
+                    initial_bottom_right = seq.bb[sub_seq_idx][1]
+                    final_top_left = seq.bb[sub_seq_idx + 1][0]
+                    final_bottom_right = seq.bb[sub_seq_idx + 1][1]
+
+                    initial_bb = bounding_box(initial_frame, initial_top_left[0], initial_top_left[1],
+                                              initial_bottom_right[0], initial_bottom_right[1], 1.0, class_obj,
+                                              Labeler.classes[0])
+                    final_bb = bounding_box(final_frame, final_top_left[0], final_top_left[1],
+                                            final_bottom_right[0], final_bottom_right[1], 1.0, class_obj,
+                                            Labeler.classes[0])
+                    df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb,
+                                                self._detection_model)
+                    # fill the subsequence with dataframe
+                    for _, row in df.iterrows():
+                        sub_seq.add_frame(time=row['frame'],
+                                          top_left=(row['xmin'], row['ymin']),
+                                          bottom_right=(row['xmax'], row['ymax']),
+                                          type_traj=row['method'])
 
     def save_coco_format_json(self, cap):
         """

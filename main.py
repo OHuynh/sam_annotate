@@ -22,9 +22,9 @@ if __name__ == "__main__":
     cap = cv2.VideoCapture(args.video)
     assert cap.isOpened(), 'Error reading the video'
 
-    database = database.Database(args.output_path)
     YOLO_model = load_yolo_model(args.path_yolo_model)
-    annotator = Annotator(cap, database, YOLO_model)
+    database = database.Database(args.output_path, YOLO_model)
+    annotator = Annotator(cap, database)
     annotator.run()
 
     cap.release()
