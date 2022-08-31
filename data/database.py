@@ -1,12 +1,12 @@
 import cv2
 import os
 import json
-from datetime import date, datetime
+from datetime import date
 
 from data.sequence_bound import SequenceBound
 from gui.labeler import Labeler
 
-from gui.labelling import detect_single_frame_with_YOLO, track_object_with_YOLO, bounding_box
+from detector.labelling import track_object_with_YOLO, bounding_box
 
 class Database:
     def __init__(self, output_path, detection_model):

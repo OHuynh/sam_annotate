@@ -2,7 +2,7 @@ import argparse
 import cv2
 
 from gui.annotator import Annotator
-from gui.labelling import load_yolo_model
+from detector.labelling import load_yolo_model
 from data import database
 parser = argparse.ArgumentParser()
 parser.add_argument(
