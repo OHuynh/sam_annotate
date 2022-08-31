@@ -261,6 +261,19 @@ class Annotator:
                             self.font, 1, color, 1)
                 chunks_displayed.append((sequence, chunk_idx))
                 chunks_displayed.append((sequence, chunk_idx + 1))
+
+                # display interpolated
+                if sequence.sub_sequence:
+                    sub_seq = sequence.sub_sequence[chunk_idx]
+                    if len(sub_seq.time_markers):
+                        if frame_idx != sequence.time_markers[chunk_idx] and \
+                           frame_idx != sequence.time_markers[chunk_idx + 1]:
+                            box_to_show = frame_idx - sequence.time_markers[chunk_idx]
+                            cv2.rectangle(frame_to_show,
+                                          sub_seq.bb[box_to_show][0],
+                                          sub_seq.bb[box_to_show][1],
+                                          color, thickness)
+
         return frame_to_show, chunks_displayed
 
     def label_emitter(self, labeler_action, label, obj_id, type_trajectory):
