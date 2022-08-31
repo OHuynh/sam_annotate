@@ -85,6 +85,7 @@ class Database:
                     # do not re process if it contains frames
                     if len(sub_seq.time_markers):
                         continue
+                    print(f'Interpolation for object : {obj}, sub sequence {sub_seq_idx + 1} / {len(seq.sub_sequence)}')
                     initial_frame = seq.time_markers[sub_seq_idx]
                     final_frame = seq.time_markers[sub_seq_idx + 1]
                     initial_top_left = seq.bb[sub_seq_idx][0]
