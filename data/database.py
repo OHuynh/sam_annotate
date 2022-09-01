@@ -139,20 +139,39 @@ class Database:
             annotations_found = False
             for obj_id in self.database:
                 for sequence in self.database[obj_id][1]:
+                    marker_annotated = False
                     for time_marker, bb in zip(sequence.time_markers, sequence.bb):
                         if time_marker == frame_idx:
+                            marker_annotated = True
                             annotations_found = True
                             annotation = {'id': str(len(annotations)),
                                           'image_id': str(len(images)),
                                           'category_id': self.database[obj_id][0] + 1,  # coco format
-                                                                                        # reserves 0 for 'empty'
+                                          # reserves 0 for 'empty'
                                           'bbox': [bb[0][0],  # x
                                                    bb[0][1],  # y
-                                                   bb[1][0] - bb[0][0],   # width
+                                                   bb[1][0] - bb[0][0],  # width
                                                    bb[1][1] - bb[0][1]],  # height
                                           'sequence_level_annotation': False
                                           }
                             annotations.append(annotation)
+                    # priority on time marker if there it is overlapped in time
+                    if not marker_annotated:
+                        for sub_seq in sequence.sub_sequence:
+                            for time_marker, bb in zip(sub_seq.time_markers, sub_seq.bb):
+                                if time_marker == frame_idx:
+                                    annotations_found = True
+                                    annotation = {'id': str(len(annotations)),
+                                                  'image_id': str(len(images)),
+                                                  'category_id': self.database[obj_id][0] + 1,  # coco format
+                                                  # reserves 0 for 'empty'
+                                                  'bbox': [bb[0][0],  # x
+                                                           bb[0][1],  # y
+                                                           bb[1][0] - bb[0][0],  # width
+                                                           bb[1][1] - bb[0][1]],  # height
+                                                  'sequence_level_annotation': False
+                                                  }
+                                    annotations.append(annotation)
 
             if annotations_found:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
