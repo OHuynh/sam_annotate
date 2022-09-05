@@ -23,7 +23,7 @@ if __name__ == "__main__":
     assert cap.isOpened(), 'Error reading the video'
 
     YOLO_model = load_yolo_model(args.path_yolo_model)
-    database = database.Database(args.output_path, YOLO_model)
+    database = database.Database(args.video, args.output_path, YOLO_model)
     annotator = Annotator(cap, database)
     annotator.run()
 

@@ -1,7 +1,7 @@
 import cv2
 import os
 import json
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from data.sequence_bound import SequenceBound
 from gui.labeler import Labeler
@@ -9,8 +9,9 @@ from gui.labeler import Labeler
 from detector.labelling import track_object_with_YOLO, bounding_box
 
 class Database:
-    def __init__(self, output_path, detection_model):
+    def __init__(self, video_name, output_path, detection_model):
         self.database = {}
+        self._video_name = video_name
         self._output_path = output_path
         self._detection_model = detection_model
 
@@ -116,7 +117,9 @@ class Database:
         path_img = os.path.join(self._output_path, 'images')
         if not os.path.exists(path_img):
             os.mkdir(path_img)
-
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        filename = os.path.basename(self._video_name)
+        begin_date = datetime.strptime(filename[filename.find('_') + 1:], '%Y%m%d_%H%M%S.mp4')
         info = {'version': 'Test',
                 'description': 'Dummy data',
 
@@ -181,6 +184,7 @@ class Database:
                 saved_path = os.path.join(path_img, str(len(images)) + '.png')
                 cv2.imwrite(saved_path, frame)
 
+                date_captured = begin_date + timedelta(seconds=frame_idx / float(fps))
                 image = {
                     'id': str(len(images)),
                     'file_name': str(len(images)) + '.png',
@@ -188,7 +192,7 @@ class Database:
                     # Optional
                     'width': frame.shape[1],
                     'height': frame.shape[0],
-                    'date_captured': '', # datetime.today(), # todo compute the date of this frame using the fps
+                    'date_captured': date_captured.strftime('%Y-%m-%d %H:%M:%S'),
                     'seq_id': '',
                     'seq_num_frames': 0,
                     'frame_num': 0
