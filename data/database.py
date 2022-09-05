@@ -109,6 +109,8 @@ class Database:
                                           bottom_right=(row['xmax'], row['ymax']),
                                           type_traj=row['method'])
 
+        print(f'Interpolation done.')
+
     def save_coco_format_json(self, cap):
         """
         # This function should have a fully generated dataset as input (with the interpolation process).
