@@ -186,16 +186,14 @@ class Annotator:
                     self._database.save_coco_format_json(cap)
                     break
                 elif c == 13 and len(self._sequence_bb.sequence):  # enter
-                    if len(self._sequence_bb) == 1:
+                    if len(self._sequence_bb.sequence) == 1:
                         Labeler(callback, self._database)
-                        sequence_bb = list(self._sequence_bb[0])
-                        sequence_bb[3] = self._type_trajectory
-                        self._sequence_bb[0] = tuple(sequence_bb)
+                        self._sequence_bb.type_traj[0] = self._type_trajectory
 
-                    self._database.add_sample(self._sequence_bb,
+                    self._database.add_sample(self._sequence_bb.sequence,
                                               self._label,
                                               self._obj_id)
-                    self._sequence_bb = []
+                    self._sequence_bb = SequenceBound([])
                 elif c == ord('+') and frame_idx < self._nb_frames - 1:
                     cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx + 1)
                     if self._mode_editing_rect and self._bb_edited:
@@ -219,8 +217,9 @@ class Annotator:
                         self._mode_play = not self._mode_play
                 elif c == 8:  # backspace
                     if self._mode_editing_rect:
-                        self._bb_edited[1][0].delete(self._bb_edited[1][1])
-                        self._bb_edited = None
+                        flag = self._bb_edited[1][0].delete(self._bb_edited[1][1])
+                        if flag:
+                            self._bb_edited = None
                     else:
                         print("Select a box with right click to delete it.")
                 elif c == ord('y'):  # use of a pretrained detector to annotate markers
