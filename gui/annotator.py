@@ -53,8 +53,6 @@ class Annotator:
         self.font = cv2.FONT_HERSHEY_PLAIN
         self.color_annotate = (0, 255, 0)
 
-        self._boxes_interpolated = []
-
     def init_window(self):
         # init the window
         cv2.namedWindow(self._window_name, cv2.WINDOW_AUTOSIZE)
@@ -82,11 +80,6 @@ class Annotator:
             prev_frame_idx = frame_idx
             if self._ret:
                 frame_to_show = self._frame.copy()
-
-                # draw interpolated boxes
-                for box in self._boxes_interpolated:
-                    if box[0] == frame_idx:
-                        cv2.rectangle(frame_to_show, box[1][0], box[1][1], (255, 0, 0), 2)
 
                 chunks_displayed = []
                 for obj_id in self._database.database:
