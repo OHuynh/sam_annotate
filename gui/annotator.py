@@ -60,7 +60,7 @@ class Annotator:
         cv2.namedWindow(self._window_name, cv2.WINDOW_AUTOSIZE)
         self._ret, self._frame = self._cap.read()
         cv2.imshow(self._window_name, self._frame)
-        cv2.createTrackbar(self._trackbar_name, self._window_name, 1, int(self._nb_frames), lambda _: None)
+        cv2.createTrackbar(self._trackbar_name, self._window_name, 1, int(self._nb_frames) - 1, lambda _: None)
         cv2.setMouseCallback(self._window_name, Annotator._draw_bb, self)
 
     def run(self):
@@ -71,6 +71,10 @@ class Annotator:
             frame_idx = cv2.getTrackbarPos(self._trackbar_name, self._window_name)
             if self._mode_play:
                 frame_idx += 1
+                if frame_idx >= self._nb_frames:
+                    self._mode_play = False
+                    frame_idx -= 1
+
             if frame_idx != prev_frame_idx:
                 cv2.setTrackbarPos(self._trackbar_name, self._window_name, frame_idx)
                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
