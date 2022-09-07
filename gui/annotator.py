@@ -47,7 +47,7 @@ class Annotator:
         self._obj_id = None
         self._labeler_action = None
         self._type_trajectory = None
-        self._sequence_bb = []
+        self._sequence_bb = SequenceBound([])
 
         self.color_id = np.array(COLORS, dtype=np.uint8)
         self.font = cv2.FONT_HERSHEY_PLAIN
@@ -86,23 +86,35 @@ class Annotator:
                     color = self.color_id[obj_id, :].tolist()
                     label = f'{obj_id} {Labeler.classes[self._database.database[obj_id][0]]}'
                     for sequence in self._database.database[obj_id][1]:
-                        frame_to_show, new_chunks_displayed = self.display_chunk_seq(sequence,
-                                                                                     frame_idx,
-                                                                                     frame_to_show,
-                                                                                     color,
-                                                                                     label)
+                        new_chunks_displayed = self.display_chunk_seq(sequence,
+                                                                      frame_idx,
+                                                                      frame_to_show,
+                                                                      color,
+                                                                      label)
                         chunks_displayed = new_chunks_displayed + chunks_displayed
 
-                if len(self._sequence_bb) > 0:
+                if len(self._sequence_bb.sequence) > 0:
                     # add boundaries rect to build a valid sequence to show
-                    tmp_sequence_bb = self._sequence_bb.copy()
-                    tmp_sequence_bb.insert(0,  (0, (0, 0), (0, 0), 0))
-                    tmp_sequence_bb.append((self._nb_frames, (0, 0), (0, 0), 0))
-                    tmp_sequence = SequenceBound(tmp_sequence_bb)
-                    self.display_chunk_seq(tmp_sequence, frame_idx, frame_to_show, self.color_annotate, '')
+                    self._sequence_bb.insert_frame(0, (0, 0), (0, 0), 0, 0)
+                    self._sequence_bb.insert_frame(self._nb_frames, (0, 0), (0, 0), 0,
+                                                   len(self._sequence_bb.time_markers))
+                    new_chunks_displayed = self.display_chunk_seq(self._sequence_bb,
+                                                                  frame_idx,
+                                                                  frame_to_show,
+                                                                  self.color_annotate,
+                                                                  '')
+                    for idx in range(len(new_chunks_displayed) - 1, -1, -1):
+                        if self._sequence_bb.time_markers[new_chunks_displayed[idx][1]] == 0 or \
+                           self._sequence_bb.time_markers[new_chunks_displayed[idx][1]] == self._nb_frames:
+                            new_chunks_displayed.pop(idx)
+                    self._sequence_bb.delete(0)
+                    self._sequence_bb.delete(len(self._sequence_bb.time_markers) - 1)
+                    for displayed_chunk in new_chunks_displayed:
+                        displayed_chunk[1] -= 1
+                    chunks_displayed = new_chunks_displayed + chunks_displayed
 
                 if self._mode_editing_rect:
-                    if len(self._sequence_bb) == 0 and self._mode_edit_at_click:
+                    if self._mode_edit_at_click:
                         nearest_point_clicked = []
                         for chunk in chunks_displayed:
                             top_left = np.array(chunk[0].bb[chunk[1]][0])
@@ -141,34 +153,29 @@ class Annotator:
                     show_rect = False
                     self._top_left, self._bottom_right = get_tl_br(self._top_left, self._bottom_right)
 
-                    # check if another rect has been drawn at this frame (and overwrite it with this new one)
-                    overwrite = False
-                    for idx in range(len(self._sequence_bb)):
-                        if self._sequence_bb[idx][0] == frame_idx:
-                            overwrite = True
-                            break
-                    if overwrite:
-                        self._sequence_bb.pop(idx)
-
-                    if len(self._sequence_bb) >= 1:
+                    if len(self._sequence_bb.sequence) >= 1 and \
+                       not (len(self._sequence_bb.sequence) == 1 and self._sequence_bb.time_markers[0] == frame_idx):
                         Labeler(callback, self._database)
-                        self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
+                        tmp_sequence = self._sequence_bb.sequence
+                        tmp_sequence.append((frame_idx, self._top_left, self._bottom_right, self._type_trajectory))
 
                         if self._labeler_action == LabelerAction.SAVE:
                             show_rect = True
-                            self._database.add_sample(self._sequence_bb,
+                            self._database.add_sample(tmp_sequence,
                                                       self._label,
                                                       self._obj_id)
-                            self._sequence_bb = []
+                            self._sequence_bb = SequenceBound([])
                         elif self._labeler_action == LabelerAction.CONTINUE:
+                            self._sequence_bb = SequenceBound(tmp_sequence)
                             show_rect = True
                         elif self._labeler_action == LabelerAction.DISCARD:
-                            self._sequence_bb = []
+                            self._sequence_bb = SequenceBound([])
                         elif self._labeler_action == LabelerAction.CANCEL:
-                            self._sequence_bb.pop(-1)
+                            tmp_sequence.pop(-1)
+                            self._sequence_bb = SequenceBound(tmp_sequence)
 
                     else:
-                        self._sequence_bb.append((frame_idx, self._top_left, self._bottom_right, None))
+                        self._sequence_bb = SequenceBound([(frame_idx, self._top_left, self._bottom_right, None)])
                         show_rect = True
                     if show_rect:
                         cv2.rectangle(frame_to_show, self._top_left, self._bottom_right, self.color_annotate, 2)
@@ -178,7 +185,7 @@ class Annotator:
                 if c == ord('q'):
                     self._database.save_coco_format_json(cap)
                     break
-                elif c == 13 and len(self._sequence_bb):  # enter
+                elif c == 13 and len(self._sequence_bb.sequence):  # enter
                     if len(self._sequence_bb) == 1:
                         Labeler(callback, self._database)
                         sequence_bb = list(self._sequence_bb[0])
@@ -256,8 +263,8 @@ class Annotator:
                             f'{sequence.time_markers[chunk_idx + 1]}',
                             (sequence.bb[chunk_idx + 1][0][0], sequence.bb[chunk_idx + 1][1][1] - 7),
                             self.font, 1, color, 1)
-                chunks_displayed.append((sequence, chunk_idx))
-                chunks_displayed.append((sequence, chunk_idx + 1))
+                chunks_displayed.append([sequence, chunk_idx])
+                chunks_displayed.append([sequence, chunk_idx + 1])
 
                 # display interpolated
                 if sequence.sub_sequence:
@@ -270,15 +277,15 @@ class Annotator:
                                           sub_seq.bb[box_to_show][0],
                                           sub_seq.bb[box_to_show][1],
                                           color, thickness)
-                            chunks_displayed.append((sub_seq, box_to_show))
-                            # trace a bar in this rectangle to show it comes from geometric interpolatation
+                            chunks_displayed.append([sub_seq, box_to_show])
+                            # trace a bar in this rectangle to show it comes from geometric interpolation
                             if sub_seq.type_traj[box_to_show] == 9:
                                 cv2.line(frame_to_show,
                                          sub_seq.bb[box_to_show][0],
                                          sub_seq.bb[box_to_show][1],
                                          color, thickness)
 
-        return frame_to_show, chunks_displayed
+        return chunks_displayed
 
     def label_emitter(self, labeler_action, label, obj_id, type_trajectory):
         self._label = label

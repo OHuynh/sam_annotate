@@ -17,23 +17,20 @@ class SequenceBound:
                           [(frame_idx, (top_left_x, top_left,y), (bottom_right_x, bottom_right,y), type_traj)]
         """
         sorted_sequence = sequence_bb
-        # because gui appears only until the second
-        # store the type of trajectory of the second annot into the first one
-        if len(sequence_bb) > 1:
-            first_annot = sorted_sequence.pop(0)
-            sorted_sequence.append((*first_annot[:-1], sorted_sequence[0][3]))
         sorted_sequence.sort(key=lambda annot: annot[0])
         # remove boxes at same frame
+        sorted_sequence.reverse()
         for idx in range(len(sorted_sequence) - 1, 0, -1):
             if sorted_sequence[idx - 1][0] == sorted_sequence[idx][0]:
                 sorted_sequence.pop(idx)
+        sorted_sequence.reverse()
 
         self.time_markers = []
         self.bb = []
         self.type_traj = []
         self.sub_sequence = []
         for idx, annot in enumerate(sorted_sequence):
-            self.add_frame(*annot)
+            self.insert_frame(*annot, idx)
             if idx < len(sorted_sequence) - 1 and add_sub_seq:
                 self.sub_sequence.append(SequenceBound([]))
 
@@ -70,26 +67,27 @@ class SequenceBound:
                 self.sub_sequence[chunk_idx] = SequenceBound([])
 
     def delete(self, chunk_idx):
-        if len(self.bb) <= 2:
+        if len(self.bb) <= 1:
             print("Can not remove box in sequence with length < 2 !")
             return
         self.bb.pop(chunk_idx)
         self.time_markers.pop(chunk_idx)
         self.type_traj.pop(chunk_idx)
-        if 0 < chunk_idx < len(self.time_markers) - 1:
-            self.sub_sequence.pop(chunk_idx)
-            self.sub_sequence[chunk_idx - 1] = SequenceBound([])
-        elif 0 < chunk_idx:
-            self.sub_sequence.pop(chunk_idx - 1)
-        else:
-            self.sub_sequence.pop(chunk_idx)
+        if len(self.sub_sequence):
+            if 0 < chunk_idx < len(self.time_markers) - 1:
+                self.sub_sequence.pop(chunk_idx)
+                self.sub_sequence[chunk_idx - 1] = SequenceBound([])
+            elif 0 < chunk_idx:
+                self.sub_sequence.pop(chunk_idx - 1)
+            else:
+                self.sub_sequence.pop(chunk_idx)
 
     @property
     def sequence(self):
         return [(time, bb[0], bb[1], type_traj)
                 for time, bb, type_traj in zip(self.time_markers, self.bb, self.type_traj)]
 
-    def add_frame(self, time, top_left, bottom_right, type_traj):
-        self.time_markers.append(time)
-        self.bb.append((top_left, bottom_right))
-        self.type_traj.append(type_traj)
+    def insert_frame(self, time, top_left, bottom_right, type_traj, idx):
+        self.time_markers.insert(idx, time)
+        self.bb.insert(idx, (top_left, bottom_right))
+        self.type_traj.insert(idx, type_traj)
