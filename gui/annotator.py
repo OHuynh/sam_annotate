@@ -273,6 +273,7 @@ class Annotator:
                                           sub_seq.bb[box_to_show][0],
                                           sub_seq.bb[box_to_show][1],
                                           color, thickness)
+                            chunks_displayed.append((sub_seq, box_to_show))
                             # trace a bar in this rectangle to show it comes from geometric interpolatation
                             if sub_seq.type_traj[box_to_show] == 9:
                                 cv2.line(frame_to_show,

@@ -63,10 +63,11 @@ class SequenceBound:
         self.bb[chunk_idx] = (top_left, bottom_right)
         self.time_markers[chunk_idx] = frame_idx
         # reset the previous and the next sub_sequence of this marker
-        if chunk_idx > 0:
-            self.sub_sequence[chunk_idx - 1] = SequenceBound([])
-        if chunk_idx < len(self.time_markers) - 1:
-            self.sub_sequence[chunk_idx] = SequenceBound([])
+        if len(self.sub_sequence):
+            if chunk_idx > 0:
+                self.sub_sequence[chunk_idx - 1] = SequenceBound([])
+            if chunk_idx < len(self.time_markers) - 1:
+                self.sub_sequence[chunk_idx] = SequenceBound([])
 
     def delete(self, chunk_idx):
         if len(self.bb) <= 2:
