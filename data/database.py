@@ -64,6 +64,11 @@ class Database:
         print(self)
 
     def load_json(self, path):
+        if not path:
+            filename = os.path.splitext(os.path.basename(self._video_name))[0]
+            path = os.path.join(self._output_path, filename + '.json')
+        if not os.path.exists(path):
+            return
         with open(path, 'r') as openfile:
             data = json.load(openfile)
         # map data to sequence objects
