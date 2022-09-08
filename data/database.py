@@ -104,10 +104,11 @@ class Database:
                                                 self._detection_model)
                     # fill the subsequence with dataframe
                     for _, row in df.iterrows():
-                        sub_seq.add_frame(time=row['frame'],
-                                          top_left=(row['xmin'], row['ymin']),
-                                          bottom_right=(row['xmax'], row['ymax']),
-                                          type_traj=row['method'])
+                        sub_seq.insert_frame(time=row['frame'],
+                                             top_left=(row['xmin'], row['ymin']),
+                                             bottom_right=(row['xmax'], row['ymax']),
+                                             type_traj=row['method'],
+                                             idx=len(sub_seq.time_markers))
 
         print(f'Interpolation done.')
 
