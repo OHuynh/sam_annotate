@@ -17,7 +17,8 @@ pip install -r requirements.txt
 ### Run
 
 ```
-python main.py --video video.mp4
+python main.py --video video.mp4  --output-path ./data --path-yolo-model ./models 
+[--input-annot ./video.json]
 ```
 
 ### Shortcuts
@@ -30,5 +31,6 @@ python main.py --video video.mp4
   <li>Space bar : Play mode </li>
   <li>a : generate interpolated boxes </li>
   <li>+/- : change at a finer scale the frame step </li>
+  <li>s : save the annotation in a json file </li>
   <li>q : exit </li>
 </ul> 
