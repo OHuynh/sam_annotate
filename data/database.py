@@ -215,12 +215,12 @@ class Database:
         filename = os.path.splitext(os.path.basename(self._video_name))[0]
         output = {}
         for obj_id in self.database:
-            output[obj_id] = []
+            output[obj_id] = [self.database[obj_id][0], []]
             for sequence in self.database[obj_id][1]:
                 sequence_bound = {'sequence': sequence.sequence, 'sub_sequence': []}
                 for sub_seq in sequence.sub_sequence:
                     sequence_bound['sub_sequence'].append(sub_seq.sequence)
-                output[obj_id].append(sequence_bound)
+                output[obj_id][1].append(sequence_bound)
 
         output_dump = json.dumps(output)
         with open(os.path.join(self._output_path, filename + '.json'), 'w') as outfile:
