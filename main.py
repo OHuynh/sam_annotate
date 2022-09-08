@@ -10,6 +10,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--input-annot", type=str, help="The path to the previously generated json annotation to import."
+)
+
+parser.add_argument(
     "--output-path", type=str, help="This path will be used to store the annotation and the associate images."
 )
 
@@ -24,6 +28,9 @@ if __name__ == "__main__":
 
     YOLO_model = load_yolo_model(args.path_yolo_model)
     database = database.Database(args.video, args.output_path, YOLO_model)
+    if args.input_annot:
+        database.load_json(args.input_annot)
+
     annotator = Annotator(cap, database)
     annotator.run()
 

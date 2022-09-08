@@ -63,6 +63,20 @@ class Database:
             print(error_message)
         print(self)
 
+    def load_json(self, path):
+        with open(path, 'r') as openfile:
+            data = json.load(openfile)
+        # map data to sequence objects
+        for obj_id_str in data:
+            obj_id = int(obj_id_str)
+            for sequence in data[obj_id_str][1]:
+                self.add_sample(sequence['sequence'], int(data[obj_id_str][0]), obj_id)
+                if sequence['sub_sequence']:
+                    sub_sequence = []
+                    for sub_seq in sequence['sub_sequence']:
+                        sub_sequence.append(SequenceBound(sub_seq))
+                    self.database[obj_id][1][-1].sub_sequence = sub_sequence
+
     def get_list_str_obj(self):
         return [f'ID {obj_id} Class {Labeler.classes[self.database[obj_id][0]]}' for obj_id in self.database]
 
