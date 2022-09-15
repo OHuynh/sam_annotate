@@ -186,6 +186,8 @@ class Annotator:
                     break
                 elif c == ord('s'):
                     self._database.save_json()
+                elif c == ord('t'):
+                    self._database.save_yolo_format_txt(cap)
                 elif c == 13 and len(self._sequence_bb.sequence):  # enter
                     if len(self._sequence_bb.sequence) == 1:
                         Labeler(callback, self._database)
@@ -279,7 +281,7 @@ class Annotator:
                                           color, thickness)
                             chunks_displayed.append([sub_seq, box_to_show])
                             # trace a bar in this rectangle to show it comes from geometric interpolation
-                            if sub_seq.type_traj[box_to_show] == 9:
+                            if sub_seq.type_traj[box_to_show] == 'interpolation':
                                 cv2.line(frame_to_show,
                                          sub_seq.bb[box_to_show][0],
                                          sub_seq.bb[box_to_show][1],

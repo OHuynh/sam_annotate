@@ -12,7 +12,8 @@ class LabelerAction(Enum):
 
 
 class Labeler:
-    classes = ('Pedestrian', 'Car', 'Autonomous Shuttle', 'Shuttle')
+    #classes = ('Pedestrian', 'Car', 'Autonomous Shuttle', 'Shuttle')
+    classes = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck')
     """
     GUI class which is displayed when the start and end frames are annotated
     """
@@ -21,7 +22,7 @@ class Labeler:
 
         self._window = tk.Tk()
         self._window.title("Labeler")
-        self._window.geometry('400x250')
+        self._window.geometry('400x400')
         self._window.configure(background="gray")
         self._window.columnconfigure(0, weight=1)
         self._window.columnconfigure(1, weight=3)

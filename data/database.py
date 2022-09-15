@@ -2,6 +2,7 @@ import cv2
 import os
 import json
 from datetime import date, datetime, timedelta
+import pandas as pd
 
 from data.sequence_bound import SequenceBound
 from gui.labeler import Labeler
@@ -9,11 +10,12 @@ from gui.labeler import Labeler
 from detector.labelling import track_object_with_YOLO, bounding_box
 
 class Database:
-    def __init__(self, video_name, output_path, detection_model):
+    def __init__(self, video_name, output_path, detection_data, detection_model):
         self.database = {}
         self._video_name = video_name
         self._output_path = output_path
         self._detection_model = detection_model
+        self._data_from_yolo = detection_data
 
     def add_sample(self, sequence_bb, label, obj_id):
         sequence = SequenceBound(sequence_bb, add_sub_seq=True)
@@ -119,8 +121,8 @@ class Database:
                     final_bb = bounding_box(final_frame, final_top_left[0], final_top_left[1],
                                             final_bottom_right[0], final_bottom_right[1], 1.0, class_obj,
                                             Labeler.classes[0])
-                    df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb,
-                                                self._detection_model)
+                    self._data_from_yolo, df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb,
+                                                                self._data_from_yolo, self._detection_model)
                     # fill the subsequence with dataframe
                     for _, row in df.iterrows():
                         sub_seq.insert_frame(time=row['frame'],
@@ -245,3 +247,139 @@ class Database:
         with open(os.path.join(self._output_path, filename + '.json'), 'w') as outfile:
             outfile.write(output_dump)
         print('Annotations saved.')
+
+    def save_yolo_format_txt(self, cap, save_img=False):
+        """
+        There are two outputs from this function:
+            1) Annotation data in YOLO format (txt files) for fine tunning / transfer learning process
+                path where labels (txt files) are saved: self._output_path/labelling/file_name/labels
+                txt file format: <object-class> <x> <y> <width> <height>
+                optional, path where images are saved: self._output_path/labelling/file_name/images
+            2) YOLO detection data (txt files) generated during interpolation process
+                path where txt files are saved: self._output_path/runs/detect/file_name/labels
+                txt file format: <object-class> <x> <y> <width> <height> <confidence>
+        """
+        # name for the txt files: videoFileName_frame_number.txt
+        videoFileName = os.path.splitext(os.path.basename(self._video_name))[0]
+        # Path used to save txt files
+        # labels will be saved inside the folder 'labelling/file_name/labels'
+        pathToLabels = os.path.join(self._output_path, 'labelling')
+        if not os.path.exists(pathToLabels):
+            os.mkdir(pathToLabels)
+        pathToLabels = os.path.join(pathToLabels, videoFileName)
+        if not os.path.exists(pathToLabels):
+            os.mkdir(pathToLabels)
+        pathToLabels = os.path.join(pathToLabels, 'labels')
+        if not os.path.exists(pathToLabels):
+            os.mkdir(pathToLabels)
+        # Path used to save images
+        # images will be saved inside the folder 'labelling/file_name/images'
+        pathToImages = os.path.join(self._output_path, 'labelling')
+        if not os.path.exists(pathToImages):
+            os.mkdir(pathToImages)
+        pathToImages = os.path.join(pathToImages, videoFileName)
+        if not os.path.exists(pathToImages):
+            os.mkdir(pathToImages)
+        pathToImages = os.path.join(pathToImages, 'images')
+        if not os.path.exists(pathToImages):
+            os.mkdir(pathToImages)
+        # extension of the files (txt)
+        labels_extension = '.txt'
+        # dataframe used to write txt files
+        df_columns = ["frame", "class", "x_center", "y_center", "width", "height"]
+        df = pd.DataFrame(columns=df_columns)
+        # information about the video and frame
+        nb_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        # for each frame inside the sequences, create a row inside the dataframe df
+        for obj_id in self.database:
+            for sequence in self.database[obj_id][1]:
+                for sub_seq in sequence.sub_sequence:
+                    for i in range(len(sub_seq.sequence)):
+                        xmin, xmax = sub_seq.sequence[i][1][0], sub_seq.sequence[i][2][0]
+                        ymin, ymax = sub_seq.sequence[i][1][1], sub_seq.sequence[i][2][1]
+                        df.loc[len(df.index)] = [int(sub_seq.sequence[i][0]), # frame number
+                                                 int(self.database[obj_id][0]),  # class
+                                                 (((xmax - xmin) / 2) + xmin) / frame_width, # x_center (normalized)
+                                                 (((ymax - ymin) / 2) + ymin) / frame_height,# y_center (normalized)
+                                                 (xmax - xmin) / frame_width,  # width
+                                                 (ymax - ymin) / frame_height]  # height
+                        if save_img:
+                            cap.set(cv2.CAP_PROP_POS_FRAMES, int(sub_seq.sequence[i][0]))
+                            ret, frame = cap.read()
+                            assert ret, 'Invalid annotation'
+                            img_file = pathToImages + '/' + videoFileName + '_' + str(int(sub_seq.sequence[i][0])) + '.png'
+                            cv2.imwrite(img_file, frame)
+        # once all sequences are stored inside dataframe df, df is saved in txt format
+        for frame_idx in range(int(nb_frames)):
+            # find all registers inside 'df' corresponding to the actual frame
+            aux = df[df['frame'] == frame_idx]
+            # if there is at least one annotated object
+            if len(aux.index):
+                # file to write
+                file_txt = pathToLabels + '/' + videoFileName + "_" + str(frame_idx) + labels_extension
+                # auxiliar variable used to know if it is the first line to write
+                first_time = True
+                # write new_box inside corresponding txt file
+                for element in list(aux.index):
+                    # if it is the first row to write then overwrite the file
+                    if first_time:
+                        opt = 'w'
+                        first_time = False
+                    # otherwise, add the line at the end of the file
+                    else:
+                        opt = 'a'
+                    with open(file_txt, opt) as fp:
+                        new_line = str(int(aux.loc[element,'class'])) + ' ' + \
+                                   str(float(aux.loc[element,'x_center'])) + ' ' + \
+                                   str(float(aux.loc[element,'y_center'])) + ' ' + \
+                                   str(float(aux.loc[element,'width'])) + ' ' + \
+                                   str(float(aux.loc[element,'height'])) + '\n'
+                        fp.write(new_line)
+                        fp.close()
+        print(f'labels saved in yolo format. Path: {pathToLabels}')
+        ###############################
+        # Save data from YOLO Detection
+        # detection data from yolo is saved in self._data_from_yolo
+        # then this data is taken from self._data_from_yolo and saved in txt files (as yolo's output)
+        # pathToYOLOData = Path used to save detection carried out with YOLO (txt files)
+        # labels will be saved inside the folder 'runs/detect/file_name/labels'
+        pathToYOLOData = os.path.join(self._output_path, 'runs')
+        if not os.path.exists(pathToYOLOData):
+            os.mkdir(pathToYOLOData)
+        pathToYOLOData = os.path.join(pathToYOLOData, 'detect')
+        if not os.path.exists(pathToYOLOData):
+            os.mkdir(pathToYOLOData)
+        pathToYOLOData = os.path.join(pathToYOLOData, videoFileName)
+        if not os.path.exists(pathToYOLOData):
+            os.mkdir(pathToYOLOData)
+        pathToYOLOData = os.path.join(pathToYOLOData, 'labels')
+        if not os.path.exists(pathToYOLOData):
+            os.mkdir(pathToYOLOData)
+        # for each frame number (not very efficient)
+        for frame_idx in range(int(nb_frames)):
+            # only write the yolo file if the .txt file doesn't exist (meaning that yolo has not been executed before)
+            file_txt = pathToYOLOData + '/' + videoFileName + "_" + str(frame_idx) + labels_extension
+            if not (os.path.isfile(file_txt)):
+                # find all registers inside '_data_from_yolo' corresponding to the actual frame
+                aux = self._data_from_yolo[self._data_from_yolo['frame'] == frame_idx]
+                # if there are detected objects in _data_from_yolo
+                if len(aux.index):
+                    # write new_box inside corresponding txt file
+                    with open(file_txt, "a") as fp:
+                        for element in list(aux.index):
+                            width = (aux.loc[element, 'xmax'] - aux.loc[element, 'xmin']) / frame_width # normalized
+                            height = (aux.loc[element, 'ymax'] - aux.loc[element, 'ymin']) / frame_height  # normalized
+                            x_center = (aux.loc[element, 'xmin'] / frame_width) + (width/2) # normalized
+                            y_center = (aux.loc[element, 'ymin'] / frame_height) + (height / 2)  # normalized
+                            new_line = str(int(aux.loc[element, 'class'])) + ' ' + \
+                                       str(x_center) + ' ' + \
+                                       str(y_center) + ' ' + \
+                                       str(width) + ' ' + \
+                                       str(height) + ' ' + \
+                                       str(aux.loc[element, 'confidence']) + '\n'
+                            fp.write(new_line)
+                        fp.close()
+        print(f'Data from yolo detection saved in path: {pathToYOLOData}')
+

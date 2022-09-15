@@ -22,13 +22,21 @@ parser.add_argument(
     "--path-yolo-model", type=str, help="This folder contains the yolo model.", default='./'
 )
 
+parser.add_argument(
+    "--path-yolo-data", type=str, help="This folder contains yolo txt files (output from detection).", default='./'
+)
+
+parser.add_argument(
+    "--execute-yolo", type=str, help="Indicate if YOLO is executed before open de app.", default="False"
+)
+
 if __name__ == "__main__":
     args = parser.parse_args()
     cap = cv2.VideoCapture(args.video)
     assert cap.isOpened(), 'Error reading the video'
 
-    YOLO_model = load_yolo_model(args.path_yolo_model)
-    database = database.Database(args.video, args.output_path, YOLO_model)
+    YOLO_data, YOLO_model = load_yolo_model(args.path_yolo_model, args.path_yolo_data, args.video, args.execute_yolo)
+    database = database.Database(args.video, args.output_path, YOLO_data, YOLO_model)
 
     database.load_json(args.input_annot)
 
