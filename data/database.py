@@ -7,7 +7,7 @@ import pandas as pd
 from data.sequence_bound import SequenceBound
 from gui.labeler import Labeler
 
-from detector.labelling import track_object_with_YOLO, bounding_box
+from detector.labelling import track_object_with_YOLO, bounding_box, list_of_classes, label_coco_map
 
 class Database:
     def __init__(self, video_name, output_path, detection_data, detection_model):
@@ -102,6 +102,8 @@ class Database:
     def interpolate(self, cap):
         for obj in self.database:
             class_obj = self.database[obj][0]
+            coco_label = label_coco_map[class_obj]
+            coco_class_id = list_of_classes.index(coco_label)
             for seq in self.database[obj][1]:
                 for sub_seq_idx, sub_seq in enumerate(seq.sub_sequence):
                     # do not re process if it contains frames
@@ -116,11 +118,12 @@ class Database:
                     final_bottom_right = seq.bb[sub_seq_idx + 1][1]
 
                     initial_bb = bounding_box(initial_frame, initial_top_left[0], initial_top_left[1],
-                                              initial_bottom_right[0], initial_bottom_right[1], 1.0, class_obj,
-                                              Labeler.classes[0])
+                                              initial_bottom_right[0], initial_bottom_right[1], 1.0,
+                                              coco_class_id,
+                                              coco_label)
                     final_bb = bounding_box(final_frame, final_top_left[0], final_top_left[1],
-                                            final_bottom_right[0], final_bottom_right[1], 1.0, class_obj,
-                                            Labeler.classes[0])
+                                            final_bottom_right[0], final_bottom_right[1], 1.0, coco_class_id,
+                                            coco_label)
                     self._data_from_yolo, df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb,
                                                                 self._data_from_yolo, self._detection_model)
                     # fill the subsequence with dataframe

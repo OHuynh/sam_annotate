@@ -12,8 +12,7 @@ class LabelerAction(Enum):
 
 
 class Labeler:
-    #classes = ('Pedestrian', 'Car', 'Autonomous Shuttle', 'Shuttle')
-    classes = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck')
+    classes = ('Person', 'Autonomous Shuttle', 'Heat Shuttle', 'Car', 'Bicycle', 'Motorcycle', 'Bus', 'Truck')
     """
     GUI class which is displayed when the start and end frames are annotated
     """

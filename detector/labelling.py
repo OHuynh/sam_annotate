@@ -23,6 +23,10 @@ list_of_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 
                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
                'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 
+# mapping of the used labels with coco labels
+#classes = ('Person', 'Autonomous Shuttle', 'Heat Shuttle', 'Car', 'Bicycle', 'Motorcycle', 'Bus', 'Truck')
+label_coco_map = ['person', 'bus', 'bus', 'car', 'bicycle', 'motorcycle', 'bus', 'truck']
+
 def find_files_with_pattern(path,pattern,extension):
     """
     This function returns a list of all files inside "path" that match "pattern" and "extension"
