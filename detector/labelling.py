@@ -7,6 +7,10 @@ from shapely.geometry.polygon import Polygon
 import os, re, glob
 
 from YOLOv7 import YOLOv7, utils
+from models.experimental import attempt_load
+from utils.torch_utils import TracedModel
+from utils.general import non_max_suppression, check_img_size, scale_coords
+from utils.datasets import letterbox
 
 
 ########## General functions
@@ -21,11 +25,11 @@ list_of_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 
                'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
                'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
                'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-               'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+               'scissors', 'teddy bear', 'hair drier', 'toothbrush', 'autonomous shuttle', 'heat shuttle']
 
 # mapping of the used labels with coco labels
 #classes = ('Person', 'Autonomous Shuttle', 'Heat Shuttle', 'Car', 'Bicycle', 'Motorcycle', 'Bus', 'Truck')
-label_coco_map = ['person', 'bus', 'bus', 'car', 'bicycle', 'motorcycle', 'bus', 'truck']
+label_coco_map = ['person', 'autonomous shuttle', 'heat shuttle', 'car', 'bicycle', 'motorcycle', 'bus', 'truck']
 
 def find_files_with_pattern(path,pattern,extension):
     """
@@ -70,6 +74,12 @@ def find_videoFileName(path_to_video):
     aux = find_filename_noExtension(path_to_video)
     aux = re.split("[/]", aux)[-1]
     return aux
+
+# Function used to capture mouse events (clicks)
+def mouseEvent(event,x,y,flags,param):
+    global mouseX,mouseY
+    if event == cv.EVENT_LBUTTONUP:
+        mouseX,mouseY = x,y
 
 ###########################
 
@@ -174,8 +184,18 @@ def load_yolo_model(path_to_model, path_to_yolo_data, path_to_video, execute_yol
     """
     # take only the file name
     videoFileName = find_videoFileName(path_to_video)
-    # upload model
-    YOLO_model = YOLOv7(path_to_model, conf_thres=0.3, iou_thres=0.5)
+    # check the size of images in the video
+    # this must be changed into a dynamic form
+    frame_width = 1280
+    frame_height = 720
+    ## upload the model
+    # check if CUDA is available, if not, then use cpu as device
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # upload file pt (weights)
+    YOLO_model = attempt_load(path_to_model, map_location=device)
+    # make model "Traced" (only yolov7)
+    imgsz = 640
+    YOLO_model = TracedModel(YOLO_model, device, imgsz)
     print(f'model uploaded from {path_to_model}')
     # execute YOLO detector (if required)
     # for this, it is required to download yolo project
@@ -183,16 +203,13 @@ def load_yolo_model(path_to_model, path_to_yolo_data, path_to_video, execute_yol
         python_env = 'C:/Users/josue.rivera/AppData/Local/Programs/Python/Python39/python.exe'
         path_to_detect = 'D:/SAM/yolov7-master/detect.py'
         weights = 'D:/SAM/yolov7-master/yolov7.pt'
+        image_size = 1280
         device = 0
         file_source = path_to_video
-        project_path = path_to_yolo_data
-        execute_YOLO_in_cmd(python_env, path_to_detect, file_source, weights, device, project_path, videoFileName)
-    # check the size of images in the video (to denormalize images)
-    # this must be changed into a dynamic form
-    frame_width = 1280
-    frame_height = 720
+        project_path = path_to_yolo_data + '/runs/detect'
+        execute_YOLO_in_cmd(python_env, path_to_detect, file_source, weights, device, project_path, videoFileName, image_size)
     # upload yolo data (if exist)
-    path = path_to_yolo_data + '/' + videoFileName + '/' + 'labels' + '/'
+    path = path_to_yolo_data + '/runs/detect/' + videoFileName + '/' + 'labels' + '/'
     print(f'uploading data from previous YOLO executions from {path}...')
     YOLO_data = loadDetectedObjectsFromYolo(path, videoFileName, frame_width, frame_height)
     print(f'{len(YOLO_data)} rows were uploaded')
@@ -249,17 +266,37 @@ def detect_single_frame_with_YOLO(frame, frame_number, df_model, model):
         already_treated = False
         df_columns = ["xmin", "ymin", "xmax", "ymax", "confidence", "class", "name"]
         output = pd.DataFrame(columns=df_columns)
-        # Detect Objects
-        boxes, scores, class_ids = model(frame)
-        for i in range(len(class_ids)):  # detections per image
+        # size of the frame
+        frame_width = 1280
+        frame_height = 720
+        stride = int(model.stride.max())
+        imgsz = 640
+        imgsz = check_img_size(imgsz, s=stride)
+        # Classes names
+        names = model.module.names if hasattr(model, 'module') else model.names
+        # check if CUDA is available, if not, then use cpu as device
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        img = letterbox(frame, imgsz, stride)[0]
+        img = img[:, :, ::-1].transpose(2, 0, 1)
+        img = np.ascontiguousarray(img)
+        img = torch.from_numpy(img).to(device)
+        img = img.float()
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+        pred = model(img, augment=False)[0]
+        pred = non_max_suppression(pred, 0.25, 0.45, classes=None, agnostic=False)
+        for i, det in enumerate(pred):  # detections per image
+            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], frame.shape).round()
             # Write results
-            output.loc[len(output.index)] = [int(boxes[i][0]),
-                                             int(boxes[i][1]),
-                                             int(boxes[i][2]),
-                                             int(boxes[i][3]),
-                                             scores[i],
-                                             int(class_ids[i]),
-                                             list_of_classes[int(class_ids[i])]]
+            for *xyxy, conf, cls in reversed(det):
+                output.loc[len(output.index)] = [int(torch.tensor(xyxy).tolist()[0]),
+                                                 int(torch.tensor(xyxy).tolist()[1]),
+                                                 int(torch.tensor(xyxy).tolist()[2]),
+                                                 int(torch.tensor(xyxy).tolist()[3]),
+                                                 float(conf.tolist()),
+                                                 int(cls.tolist()),
+                                                 names[int(cls.tolist())]]
     return output, already_treated
 
 
@@ -315,6 +352,20 @@ def track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb
         # output_from_detection is a dataframe that will contains all objects detected (with yolo) in frame_number
         # data_already_treated is a binary flag (False / True) that indicates if the frame had been already passed through yolo
         output_from_detection, data_already_treated = detect_single_frame_with_YOLO(frame, frame_number, data_from_yolo, YOLO_model)
+        """
+        ## Used to see the previous box and one of the news proposed by yolo
+        frame_copy = frame.copy()
+        frame_copy = cv.rectangle(frame_copy, (previous_bb.xmin,previous_bb.ymin), (previous_bb.xmax,previous_bb.ymax), (0, 255, 0), 1)
+        a = ((output_from_detection.loc[0,'xmin']), (output_from_detection.loc[0,'ymin']))
+        b = ((output_from_detection.loc[0,'xmax']), (output_from_detection.loc[0,'ymax']))
+        frame_copy = cv.rectangle(frame_copy, a, b, (0, 255, 255), 0)
+        windowsName = 'ventana de josh'
+        cv.namedWindow(windowsName)
+        cv.setMouseCallback(windowsName, mouseEvent)
+        cv.imshow(windowsName, frame_copy)
+        print(output_from_detection)
+        choice = cv.waitKey(0)
+        """
         # if frame has not been treated before, then store data from yolo in dataframe data_from_yolo
         if not data_already_treated:
             column_frame = pd.DataFrame({'frame': [frame_number]*len(output_from_detection)}, index=list(output_from_detection.index))
@@ -372,9 +423,20 @@ def find_new_box(previous_bb,output_from_detection,final_bb):
     intersection_threshold = 0.4
     # compute the intersection between the previous box and all the objects detected in the frame
     df = find_percentages_of_intersections(previous_bb, output_from_detection)
-    # take only the detected objects that have intersection with the previous box (intersection given by threshold)
-    # and that have the same class than the previous box
-    df = df[(df["percentage of intersection"] >= intersection_threshold) & (df["class"] == previous_bb.det_class)]
+    # if the object to track is the autonomous shuttle or the heat shuttle
+    # then the object can be detected by yolo as a bus, a car, or a truck
+    # then take any detected object
+    if (previous_bb.det_class == list_of_classes.index('autonomous shuttle')) or (previous_bb.det_class == list_of_classes.index('heat shuttle')):
+        df = df[(df["percentage of intersection"] >= intersection_threshold)]
+        if previous_bb.det_class == list_of_classes.index('autonomous shuttle'):
+            df["class"].replace(df["class"].unique().tolist(), list_of_classes.index('autonomous shuttle'), inplace=True)
+        else:
+            df["class"].replace(df["class"].unique().tolist(), list_of_classes.index('heat shuttle'), inplace=True)
+    # other class different from autonomous shuttle and heat shuttle
+    else:
+        # take only the detected objects that have intersection with the previous box (intersection given by threshold)
+        # and that have the same class than the previous box
+        df = df[(df["percentage of intersection"] >= intersection_threshold) & (df["class"] == previous_bb.det_class)]
     # if there is not boxes then interpolate using previous_bb and final_bb
     if len(df) == 0:
         df = interpolate_box(previous_bb, final_bb, df)
@@ -385,13 +447,15 @@ def find_new_box(previous_bb,output_from_detection,final_bb):
         df = df[df["percentage of intersection"] == df["percentage of intersection"].max()]
         # ensure that there is only one single row
         df = df[df.index == min(list(df.index))]
+    # ensure that there is only one single row
+    assert len(df) == 1, 'there are two boxes selected, it is expected only one'
     # add to df_new_box the column frame to match with result_from_detection
     column_method = pd.DataFrame({'method': [method_used]}, index=list(df.index))
     df = pd.concat([column_method, df], axis=1)
     return df
 
 
-def execute_YOLO_in_cmd(python_env, path_to_detect, file_source, weights, device, project_path, name):
+def execute_YOLO_in_cmd(python_env, path_to_detect, file_source, weights, device, project_path, name, image_size):
     """
     Function used to execute YOLO outside this app
     imputs:
@@ -402,6 +466,7 @@ def execute_YOLO_in_cmd(python_env, path_to_detect, file_source, weights, device
         5) device, cuda:0, cpu:1,2,...
         6) path to save results (txt files)
         7) name of the folder that will contain all txt files
+        8) image size
     example:
     C:/Users/josue.rivera/AppData/Local/Programs/Python/Python39/python.exe "D:/SAM/yolov7-master/detect.py"
     --source "D:/SAM/Data_to_label/Cam3_20210614_183955.mp4" --weights D:/SAM/yolov7-master/yolov7.pt
@@ -422,7 +487,8 @@ def execute_YOLO_in_cmd(python_env, path_to_detect, file_source, weights, device
                ' --device ' + str(device) + \
                ' --nosave --save-txt' + \
                ' --project ' + '"' + project_path + '"' + \
-               ' --name ' + '"' + name + '"'
+               ' --name ' + '"' + name + '"' + \
+               '--img-size ' + str(image_size)
         # execute the line in cmd
         os.system('cmd /c "{}"'.format(line))
         print(f'YOLO results were saved in {project_path}/{name}/labels')
