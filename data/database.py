@@ -177,7 +177,7 @@ class Database:
                             annotation = {'id': str(len(annotations)),
                                           'image_id': str(len(images)),
                                           #'category_id': self.database[obj_id][0] + 1,  # coco format
-                                          'category_id': list_of_classes.index(
+                                          'category_id': Labeler.classes.index(
                                               Labeler.classes[self.database[obj_id][0]]), # coco format
                                           # reserves 0 for 'empty'
                                           'bbox': [bb[0][0],  # x
@@ -196,7 +196,7 @@ class Database:
                                     annotation = {'id': str(len(annotations)),
                                                   'image_id': str(len(images)),
                                                   #'category_id': self.database[obj_id][0] + 1,  # coco format
-                                                  'category_id': list_of_classes.index(
+                                                  'category_id': Labeler.classes.index(
                                                       Labeler.classes[self.database[obj_id][0]]),  # coco format
                                                   # reserves 0 for 'empty'
                                                   'bbox': [bb[0][0],  # x
@@ -244,7 +244,7 @@ class Database:
         output = {}
         for obj_id in self.database:
             #output[obj_id] = [self.database[obj_id][0], []]
-            output[obj_id] = [list_of_classes.index(Labeler.classes[self.database[obj_id][0]]), []]
+            output[obj_id] = [Labeler.classes.index(Labeler.classes[self.database[obj_id][0]]), []]
             for sequence in self.database[obj_id][1]:
                 sequence_bound = {'sequence': sequence.sequence, 'sub_sequence': []}
                 for sub_seq in sequence.sub_sequence:
@@ -309,7 +309,7 @@ class Database:
                         ymin, ymax = sub_seq.sequence[i][1][1], sub_seq.sequence[i][2][1]
                         df.loc[len(df.index)] = [int(sub_seq.sequence[i][0]), # frame number
                                                  #int(self.database[obj_id][0]),  # class
-                                                 list_of_classes.index(Labeler.classes[self.database[obj_id][0]]),#class
+                                                 Labeler.classes.index(Labeler.classes[self.database[obj_id][0]]),#class
                                                  (((xmax - xmin) / 2) + xmin) / frame_width, # x_center (normalized)
                                                  (((ymax - ymin) / 2) + ymin) / frame_height,# y_center (normalized)
                                                  (xmax - xmin) / frame_width,  # width
