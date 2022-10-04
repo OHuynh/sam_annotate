@@ -176,9 +176,7 @@ class Database:
                             annotations_found = True
                             annotation = {'id': str(len(annotations)),
                                           'image_id': str(len(images)),
-                                          #'category_id': self.database[obj_id][0] + 1,  # coco format
-                                          'category_id': Labeler.classes.index(
-                                              Labeler.classes[self.database[obj_id][0]]), # coco format
+                                          'category_id': self.database[obj_id][0] + 1,  # coco format
                                           # reserves 0 for 'empty'
                                           'bbox': [bb[0][0],  # x
                                                    bb[0][1],  # y
@@ -195,9 +193,7 @@ class Database:
                                     annotations_found = True
                                     annotation = {'id': str(len(annotations)),
                                                   'image_id': str(len(images)),
-                                                  #'category_id': self.database[obj_id][0] + 1,  # coco format
-                                                  'category_id': Labeler.classes.index(
-                                                      Labeler.classes[self.database[obj_id][0]]),  # coco format
+                                                  'category_id': self.database[obj_id][0] + 1,  # coco format
                                                   # reserves 0 for 'empty'
                                                   'bbox': [bb[0][0],  # x
                                                            bb[0][1],  # y
@@ -243,8 +239,7 @@ class Database:
         filename = os.path.splitext(os.path.basename(self._video_name))[0]
         output = {}
         for obj_id in self.database:
-            #output[obj_id] = [self.database[obj_id][0], []]
-            output[obj_id] = [Labeler.classes.index(Labeler.classes[self.database[obj_id][0]]), []]
+            output[obj_id] = [self.database[obj_id][0], []]
             for sequence in self.database[obj_id][1]:
                 sequence_bound = {'sequence': sequence.sequence, 'sub_sequence': []}
                 for sub_seq in sequence.sub_sequence:
@@ -256,7 +251,7 @@ class Database:
             outfile.write(output_dump)
         print('Annotations saved.')
 
-    def save_yolo_format_txt(self, cap, save_img=True):
+    def save_yolo_format_txt(self, cap, save_img=False):
         """
         There are two outputs from this function:
             1) Annotation data in YOLO format (txt files) for fine tunning / transfer learning process
@@ -308,8 +303,7 @@ class Database:
                         xmin, xmax = sub_seq.sequence[i][1][0], sub_seq.sequence[i][2][0]
                         ymin, ymax = sub_seq.sequence[i][1][1], sub_seq.sequence[i][2][1]
                         df.loc[len(df.index)] = [int(sub_seq.sequence[i][0]), # frame number
-                                                 #int(self.database[obj_id][0]),  # class
-                                                 Labeler.classes.index(Labeler.classes[self.database[obj_id][0]]),#class
+                                                 int(self.database[obj_id][0]),  # class
                                                  (((xmax - xmin) / 2) + xmin) / frame_width, # x_center (normalized)
                                                  (((ymax - ymin) / 2) + ymin) / frame_height,# y_center (normalized)
                                                  (xmax - xmin) / frame_width,  # width
