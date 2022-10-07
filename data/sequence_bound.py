@@ -1,8 +1,7 @@
 import numpy as np
 from enum import Enum
 
-from utiles.geometry import get_tl_br
-
+from utils.geometry import get_tl_br
 
 class TrajectoryTypes(Enum):
     NONE = 0

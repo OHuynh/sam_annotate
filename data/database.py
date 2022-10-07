@@ -7,15 +7,14 @@ import pandas as pd
 from data.sequence_bound import SequenceBound
 from gui.labeler import Labeler
 
-from detector.labelling import track_object_with_YOLO, bounding_box, list_of_classes, label_coco_map
+#from detector.yolo.yolov7 import track_object_with_YOLO, bounding_box, list_of_classes, label_coco_map
 
 class Database:
-    def __init__(self, video_name, output_path, detection_data, detection_model):
+    def __init__(self, video_name, output_path, detection_model):
         self.database = {}
         self._video_name = video_name
         self._output_path = output_path
         self._detection_model = detection_model
-        self._data_from_yolo = detection_data
 
     def add_sample(self, sequence_bb, label, obj_id):
         sequence = SequenceBound(sequence_bb, add_sub_seq=True)
@@ -99,41 +98,11 @@ class Database:
             string += '\n ------------------------------------------- \n'
         return string
 
-    def interpolate(self, cap):
+    def interpolate(self):
         for obj in self.database:
-            class_obj = self.database[obj][0]
-            coco_label = label_coco_map[class_obj]
-            coco_class_id = list_of_classes.index(coco_label)
+            label = self.database[obj][0]
             for seq in self.database[obj][1]:
-                for sub_seq_idx, sub_seq in enumerate(seq.sub_sequence):
-                    # do not re process if it contains frames
-                    if len(sub_seq.time_markers):
-                        continue
-                    print(f'Interpolation for object : {obj}, sub sequence {sub_seq_idx + 1} / {len(seq.sub_sequence)}')
-                    initial_frame = seq.time_markers[sub_seq_idx]
-                    final_frame = seq.time_markers[sub_seq_idx + 1]
-                    initial_top_left = seq.bb[sub_seq_idx][0]
-                    initial_bottom_right = seq.bb[sub_seq_idx][1]
-                    final_top_left = seq.bb[sub_seq_idx + 1][0]
-                    final_bottom_right = seq.bb[sub_seq_idx + 1][1]
-
-                    initial_bb = bounding_box(initial_frame, initial_top_left[0], initial_top_left[1],
-                                              initial_bottom_right[0], initial_bottom_right[1], 1.0,
-                                              coco_class_id,
-                                              coco_label)
-                    final_bb = bounding_box(final_frame, final_top_left[0], final_top_left[1],
-                                            final_bottom_right[0], final_bottom_right[1], 1.0, coco_class_id,
-                                            coco_label)
-                    self._data_from_yolo, df = track_object_with_YOLO(cap, initial_frame, final_frame, initial_bb, final_bb,
-                                                                self._data_from_yolo, self._detection_model)
-                    # fill the subsequence with dataframe
-                    for _, row in df.iterrows():
-                        sub_seq.insert_frame(time=row['frame'],
-                                             top_left=(row['xmin'], row['ymin']),
-                                             bottom_right=(row['xmax'], row['ymax']),
-                                             type_traj=row['method'],
-                                             idx=len(sub_seq.time_markers))
-
+                self._detection_model.interpolate(seq, label)
         print(f'Interpolation done.')
 
     def save_coco_format_json(self, cap):

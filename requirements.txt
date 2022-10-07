@@ -1,9 +1,2 @@
 numpy
 opencv-python
-pandas
-torch
-shapely
-torchvision
-pyyaml
-matplotlib
-seaborn

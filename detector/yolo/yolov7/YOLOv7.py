@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import onnxruntime
 
-from .utils import xywh2xyxy, nms, draw_detections
+from detector.yolo.yolov7 import xywh2xyxy, nms, draw_detections
 
 
 class YOLOv7:

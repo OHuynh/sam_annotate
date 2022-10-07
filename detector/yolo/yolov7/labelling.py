@@ -1,31 +1,16 @@
-import torch
 import cv2 as cv
 import pandas as pd
 import numpy as np
-import math
 from shapely.geometry.polygon import Polygon
-import os, re, glob
+import os, re, glob, sys
 
-from YOLOv7 import YOLOv7, utils
+from detector.yolo.yolov7 import YOLOv7, utils
 
 
 ########## General functions
 # extension of the labels' files
 labels_extension = '.txt'
-# list of all classes included in the model
-list_of_classes = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-               'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-               'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-               'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
-               'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-               'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-               'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard',
-               'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-               'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 
-# mapping of the used labels with coco labels
-#classes = ('Person', 'Autonomous Shuttle', 'Heat Shuttle', 'Car', 'Bicycle', 'Motorcycle', 'Bus', 'Truck')
-label_coco_map = ['person', 'bus', 'bus', 'car', 'bicycle', 'motorcycle', 'bus', 'truck']
 
 def find_files_with_pattern(path,pattern,extension):
     """
@@ -144,7 +129,7 @@ def storeObjectDetected(df, row_number, frame_number, aux, frame_width, frame_he
     y_center = float(aux.split(" ")[2]) * frame_height
     width = float(aux.split(" ")[3]) * frame_width
     height = float(aux.split(" ")[4]) * frame_height
-    xyxy = utils.xywh2xyxy(np.array([x_center,y_center,width,height]))
+    xyxy = utils.xywh2xyxy(np.array([x_center, y_center, width, height]))
     df.loc[row_number, "xmin"] = int(xyxy[0])
     df.loc[row_number, "ymin"] = int(xyxy[1])
     df.loc[row_number, "xmax"] = int(xyxy[2])
@@ -166,7 +151,7 @@ def xyxy2xywh(x):
 
 
 ################ For YOLO inference
-def load_yolo_model(path_to_model, path_to_yolo_data, path_to_video, execute_yolo):
+def load_yolo_model(path_to_model, path_to_yolo_data, path_to_video, execute_yolo, path_to_yolo_project):
     """
     Load the model (YOLO model) and a dataframe containing all the detected objects (boxes per frame)
     from YOLO execution (if any)
@@ -180,9 +165,9 @@ def load_yolo_model(path_to_model, path_to_yolo_data, path_to_video, execute_yol
     # execute YOLO detector (if required)
     # for this, it is required to download yolo project
     if execute_yolo == 'True':
-        python_env = 'C:/Users/josue.rivera/AppData/Local/Programs/Python/Python39/python.exe'
-        path_to_detect = 'D:/SAM/yolov7-master/detect.py'
-        weights = 'D:/SAM/yolov7-master/yolov7.pt'
+        python_env = sys.executable
+        path_to_detect = os.path.join(path_to_yolo_project, 'detect.py')
+        weights = os.path.join(path_to_yolo_project, 'yolov7.pt')
         device = 0
         file_source = path_to_video
         project_path = path_to_yolo_data
@@ -199,16 +184,6 @@ def load_yolo_model(path_to_model, path_to_yolo_data, path_to_video, execute_yol
     return YOLO_data, YOLO_model
 
 
-class bounding_box:
-    def __init__(self,frame_number,xmin,ymin,xmax,ymax,det_confidence,det_class,det_name):
-        self.frame_number = frame_number
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
-        self.det_confidence = det_confidence
-        self.det_class = det_class
-        self.det_name = det_name
 
 def create_rectangle_from_bbclass(bounding_box):
     x1 = bounding_box.xmin

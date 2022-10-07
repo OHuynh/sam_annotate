@@ -1,16 +1,12 @@
 import cv2
 import numpy as np
-import pandas as pd
-import torch
-import math
 from functools import partial
-from shapely.geometry.polygon import Polygon
 
-from utiles.distinct_colors import COLORS
-from utiles.geometry import get_tl_br
+from utils.distinct_colors import COLORS
+from utils.geometry import get_tl_br
 
 from gui.labeler import Labeler, LabelerAction
-from data.sequence_bound import SequenceBound, TrajectoryTypes
+from data.sequence_bound import SequenceBound
 
 
 class Annotator:
@@ -212,7 +208,7 @@ class Annotator:
                                                    self._edit_pos,
                                                    frame_idx)
                 elif c == ord('a'):
-                    self.compute_interpolation(cap)
+                    self.compute_interpolation()
                 elif c == ord(' '):
                     if self._mode_editing_rect or self._mode_drawing_rect:
                         print("Release editing/drawing mode to play the video.")
@@ -335,5 +331,5 @@ class Annotator:
 
         return frame_idx, top_left, bottom_right, label, obj_id
 
-    def compute_interpolation(self, cap):
-        self._database.interpolate(cap)
+    def compute_interpolation(self):
+        self._database.interpolate()
