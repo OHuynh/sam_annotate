@@ -105,31 +105,11 @@ class Database:
                 self._detection_model.interpolate(seq, label)
         print(f'Interpolation done.')
 
-    def save_coco_format_json(self, cap):
+    def to_coco_format_json(self, cap, counter_img):
         """
-        # This function should have a fully generated dataset as input (with the interpolation process).
-        # A dummy generation is temporary implemented here for testing purpose.
+        This function returns the annotations with coco-format
         """
-        path_img = os.path.join(self._output_path, 'images')
-        if not os.path.exists(path_img):
-            os.mkdir(path_img)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        filename = os.path.basename(self._video_name)
-        begin_date = datetime.strptime(filename[filename.find('_') + 1:], '%Y%m%d_%H%M%S.mp4')
-        info = {'version': 'Test',
-                'description': 'Dummy data',
-
-                'year': date.today().year,
-                'date_created': '', #datetime.today(),
-                'contributor' : 'Olivier Huynh'}
-
         images = []
-        categories = []
-        for idx, label in enumerate(Labeler.classes):
-            category = {'id': idx + 1,
-                        'name': label}
-            categories.append(category)
-        
         annotations = []
 
         # creation of dummy data using only the bounding boxes annotated of the sequence
@@ -141,10 +121,10 @@ class Database:
                     marker_annotated = False
                     for time_marker, bb in zip(sequence.time_markers, sequence.bb):
                         if time_marker == frame_idx:
-                            marker_annotated = True
                             annotations_found = True
+                            marker_annotated = True
                             annotation = {'id': str(len(annotations)),
-                                          'image_id': str(len(images)),
+                                          'image_id': counter_img,
                                           'category_id': self.database[obj_id][0] + 1,  # coco format
                                           # reserves 0 for 'empty'
                                           'bbox': [bb[0][0],  # x
@@ -161,7 +141,7 @@ class Database:
                                 if time_marker == frame_idx:
                                     annotations_found = True
                                     annotation = {'id': str(len(annotations)),
-                                                  'image_id': str(len(images)),
+                                                  'image_id': counter_img,
                                                   'category_id': self.database[obj_id][0] + 1,  # coco format
                                                   # reserves 0 for 'empty'
                                                   'bbox': [bb[0][0],  # x
@@ -171,38 +151,11 @@ class Database:
                                                   'sequence_level_annotation': False
                                                   }
                                     annotations.append(annotation)
-
             if annotations_found:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-                ret, frame = cap.read()
-                assert ret, 'Invalid annotation'
+                images.append((frame_idx, counter_img))
+                counter_img += 1
 
-                saved_path = os.path.join(path_img, str(len(images)) + '.png')
-                cv2.imwrite(saved_path, frame)
-
-                date_captured = begin_date + timedelta(seconds=frame_idx / float(fps))
-                image = {
-                    'id': str(len(images)),
-                    'file_name': str(len(images)) + '.png',
-                    'location': path_img,
-                    # Optional
-                    'width': frame.shape[1],
-                    'height': frame.shape[0],
-                    'date_captured': date_captured.strftime('%Y-%m-%d %H:%M:%S'),
-                    'seq_id': '',
-                    'seq_num_frames': 0,
-                    'frame_num': 0
-                }
-                images.append(image)
-
-        output = {'info': info,
-                  'images': images,
-                  'categories': categories,
-                  'annotations': annotations}
-
-        output_dump = json.dumps(output)
-        with open(os.path.join(self._output_path, 'annotations_coco.json'), 'w') as outfile:
-            outfile.write(output_dump)
+        return annotations, images
 
     def save_json(self):
         filename = os.path.splitext(os.path.basename(self._video_name))[0]
